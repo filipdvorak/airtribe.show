@@ -70,9 +70,11 @@ h1, h2, h3, h4 { margin: 0; font-family: var(--head); font-weight: 700; letter-s
 .muted { color: var(--muted); }
 .accent { color: var(--accent); }
 
-.sec-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px 48px; flex-wrap: wrap; margin-bottom: clamp(32px, 4vw, 48px); }
+/* Hlavička sekce je mřížka, ne flex: popis tak začíná na všech stránkách
+   ve stejném sloupci a nespadne pod nadpis, když je nadpis delší. */
+.sec-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 400px); align-items: end; gap: 18px 48px; margin-bottom: clamp(32px, 4vw, 48px); }
 .sec-head h2 { margin-top: 10px; }
-.sec-head > p { color: var(--muted); max-width: 46ch; margin: 0; }
+.sec-head > p { color: var(--muted); margin: 0; }
 
 /* ---------- Tlačítka ---------- */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; height: 50px; padding: 0 24px; border-radius: 999px; border: 1px solid transparent; font-weight: 600; font-size: .95rem; white-space: nowrap; cursor: pointer; transition: background .25s, color .25s, border-color .25s, transform .25s var(--ease); }
@@ -602,10 +604,10 @@ html:has(.pillnav) { scroll-padding-top: calc(var(--nav-h) + 68px); }
 .am:hover img { transform: scale(1.03); }
 
 /* ===== O nás — Kdo jsme ===== */
-.who-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px 48px; flex-wrap: wrap; margin-bottom: clamp(28px, 4vw, 44px); }
+.who-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 400px); align-items: end; gap: 16px 48px; margin-bottom: clamp(28px, 4vw, 44px); }
 .who-head .h2 { margin-top: 10px; max-width: 20ch; }
-.who-head p { color: var(--muted); max-width: 40ch; margin: 0; }
-.who-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.who-head p { color: var(--muted); margin: 0; }
+.who-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .who-card { position: relative; overflow: hidden; display: flex; flex-direction: column; min-height: 250px; padding: 26px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); color: var(--text); transition: opacity .8s var(--ease), transform .8s var(--ease), translate .4s var(--ease), border-color .3s; transition-delay: var(--d, 0s), var(--d, 0s), 0s, 0s; }
 .who-card::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--accent); opacity: 0; transition: opacity .35s; }
 a.who-card:hover { translate: 0 -3px; border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
@@ -688,6 +690,7 @@ a.who-card:hover .who-more svg { translate: 4px 0; }
 @media (max-width: 900px) {
   :root { --space: clamp(52px, 8.5vw, 88px); --nav-h: 64px; }
   .wrap { padding-left: max(var(--gutter), env(safe-area-inset-left)); padding-right: max(var(--gutter), env(safe-area-inset-right)); }
+  .sec-head, .who-head { grid-template-columns: 1fr; }
   .sec-head { margin-bottom: clamp(22px, 5vw, 36px); }
   .eyebrow { font-size: .85rem; }
   .price small, .footer-bottom, .footer h5 { font-size: .84rem; }
@@ -798,4 +801,59 @@ a.who-card:hover .who-more svg { translate: 4px 0; }
 
 @media (max-width: 1160px) {
   .pkg-gal, .pkg.is-flipped .pkg-gal { order: 0; width: 100%; max-width: 560px; justify-self: center; }
+}
+
+/* =========================================================
+   Spolupráce — loga partnerů, každé právě jednou
+   ========================================================= */
+/* Sekce má jen jeden velký vystředěný nadpis, žádné označení ani popis. */
+.logos-title { max-width: 22ch; margin: 0 auto; text-align: center; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.02em; color: var(--text); }
+.logos { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 32px; margin-top: clamp(36px, 4.5vw, 56px); }
+.logo-item { position: relative; display: flex; align-items: center; justify-content: center; height: 96px;
+  transition: translate .35s var(--ease); }
+
+/* Loga svítí pořád stejně a nic se samo nehýbe — efekt se pustí až při
+   najetí kurzorem: měkká bílá záře za logem, zvětšení a drobné nadzvednutí. */
+.logo-item::before { content: ""; position: absolute; inset: -34% -22%; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, .09), transparent 78%);
+  opacity: 0; transition: opacity .35s var(--ease); }
+
+/* Každé logo má vlastní rozměry (třídy .lg-* níže) spočítané tak, aby měla
+   všechna srovnatelnou optickou velikost — hustý znak se nesmí sázet stejně
+   velký jako řídký wordmark s tenkými tahy. Násobitel --k celou sadu zmenší
+   na užších displejích, takže čísla jsou jen na jednom místě. */
+.logo-item img { position: relative; z-index: 1;
+  max-height: calc(var(--lh, 52px) * var(--k, 1)); max-width: calc(var(--lw, 120px) * var(--k, 1)); width: auto; height: auto; object-fit: contain;
+  transition: scale .35s var(--ease); }
+a.logo-item:hover, a.logo-item:focus-visible { translate: 0 -4px; }
+a.logo-item:hover img, a.logo-item:focus-visible img { scale: 1.08; }
+a.logo-item:hover::before, a.logo-item:focus-visible::before { opacity: 1; }
+a.logo-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 6px; border-radius: 10px; }
+
+/* Rozměry jednotlivých log (výška × šířka v px při --k: 1). */
+.lg-bosch           { --lh: 32px; --lw: 142px; }
+.lg-stillproduction { --lh: 60px; --lw: 125px; }
+.lg-zliv            { --lh: 47px; --lw: 104px; }
+.lg-vrcovice        { --lh: 62px; --lw:  56px; }
+.lg-divcice         { --lh: 62px; --lw:  57px; }
+.lg-vetrni          { --lh: 63px; --lw:  52px; }
+.lg-fueltra         { --lh: 74px; --lw:  48px; }
+
+@media (max-width: 1100px) {
+  .logos { gap: 8px 22px; --k: .9; }
+  .logo-item { height: 86px; }
+}
+@media (max-width: 700px) {
+  .logos { margin-top: 30px; gap: 6px 18px; --k: .72; justify-content: center; }
+  .logo-item { height: 70px; }
+}
+@media (hover: none) {
+  a.logo-item:hover { translate: 0; }
+  a.logo-item:hover img { scale: 1; }
+  a.logo-item:hover::before { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .logo-item, .logo-item img, .logo-item::before { transition: none; }
+  a.logo-item:hover { translate: 0; }
+  a.logo-item:hover img { scale: 1; }
 }

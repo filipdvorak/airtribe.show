@@ -113,6 +113,7 @@
     var N = originals.length;
     if (!N) return;
     var interval = parseInt(root.getAttribute("data-interval"), 10) || 4000;
+    var auto = root.getAttribute("data-interval") !== "0";   /* 0 = posouvá jen návštěvník */
     var bp = (root.getAttribute("data-per-view") || "4,2,1").split(",").map(Number); /* desktop, tablet, mobil */
     var n = 0, idx = 0, timer = null, settleT = null, hovering = false, visible = false, busy = false;
     var dotsBox = root.querySelector(".car-dots");
@@ -176,7 +177,7 @@
     function stop() { clearInterval(timer); timer = null; }
     function restart() {
       stop();
-      if (hovering || !visible || document.hidden) return;
+      if (!auto || hovering || !visible || document.hidden) return;
       timer = setInterval(next, interval);
     }
 
@@ -288,6 +289,59 @@
     };
     window.addEventListener("scroll", function () { if (!ticking) { ticking = true; requestAnimationFrame(upd); } }, { passive: true });
     upd();
+  }
+
+  /* ---- Nabídka: rozbalovací popisky (mobil a tablet) ---- */
+  var psBtns = Array.prototype.slice.call(document.querySelectorAll(".ps-btn"));
+  if (psBtns.length) {
+    var narrow = window.matchMedia("(max-width: 1160px)");
+    var psBody = function (btn) {
+      var row = btn.closest(".ps");
+      return row ? row.querySelector(".ps-body") : null;
+    };
+    psBtns.forEach(function (btn, k) {
+      var box = psBody(btn);
+      if (!box) return;
+      if (!box.id) box.id = "ps-body-" + (k + 1);
+      btn.setAttribute("aria-controls", box.id);
+      btn.addEventListener("click", function () {
+        if (!narrow.matches) return;
+        var on = btn.getAttribute("aria-expanded") !== "true";
+        btn.setAttribute("aria-expanded", on ? "true" : "false");
+        box.classList.toggle("is-open", on);
+        if (on) {
+          box.style.maxHeight = box.scrollHeight + 20 + "px";
+          var done = function () {
+            if (box.classList.contains("is-open")) box.style.maxHeight = "none";
+            box.removeEventListener("transitionend", done);
+          };
+          box.addEventListener("transitionend", done);
+        } else {
+          box.style.maxHeight = box.scrollHeight + "px";
+          requestAnimationFrame(function () { box.style.maxHeight = "0px"; });
+        }
+      });
+    });
+    var syncPs = function () {
+      psBtns.forEach(function (btn) {
+        var box = psBody(btn);
+        if (!box) return;
+        if (narrow.matches) {
+          if (btn.getAttribute("aria-expanded") !== "true") {
+            btn.setAttribute("aria-expanded", "false");
+            box.classList.remove("is-open");
+            box.style.maxHeight = "0px";
+          } else {
+            box.style.maxHeight = "none";
+          }
+        } else {
+          btn.setAttribute("aria-expanded", "true");
+          box.style.maxHeight = "";
+        }
+      });
+    };
+    (narrow.addEventListener ? narrow.addEventListener("change", syncPs) : narrow.addListener(syncPs));
+    syncPs();
   }
 
   /* ---- Medailonky členů týmu ---- */
