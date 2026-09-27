@@ -349,7 +349,7 @@
   var members = Array.prototype.slice.call(document.querySelectorAll(".member"));
   if (drawer && members.length && typeof drawer.showModal === "function") {
     var dPhoto = drawer.querySelector(".drawer-photo"), dNick = drawer.querySelector(".drawer-nick"),
-        dName = drawer.querySelector(".drawer-name"), dRole = drawer.querySelector(".drawer-role"),
+        dName = drawer.querySelector(".drawer-name"),
         dBio = drawer.querySelector(".drawer-bio"), dInner = drawer.querySelector(".drawer-body");
     var cur = 0, opener = null;
     var fill = function (k) {
@@ -361,7 +361,6 @@
       dNick.textContent = m.dataset.nick ? "„" + m.dataset.nick + "“" : "";
       dNick.hidden = !m.dataset.nick;
       dName.textContent = m.dataset.name;
-      dRole.textContent = m.dataset.role;
       dBio.innerHTML = m.querySelector(".member-bio").innerHTML;
       dInner.scrollTop = 0;
       try { history.replaceState(null, "", "#" + m.id); } catch (e) {}
@@ -373,7 +372,8 @@
       if (opener) opener.focus({ preventScroll: true });
     });
     members.forEach(function (m, k) {
-      m.addEventListener("click", function () { open(k); });
+      /* Kliknutí na ikonu sociální sítě vede na odkaz, medailonek se neotevírá. */
+      m.addEventListener("click", function (e) { if (e.target.closest(".m-soc")) return; open(k); });
       m.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(k); } });
     });
     drawer.querySelector("[data-close]").addEventListener("click", function () { drawer.close(); });
