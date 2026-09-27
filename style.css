@@ -138,7 +138,12 @@ h1, h2, h3, h4 { margin: 0; font-family: var(--head); font-weight: 700; letter-s
    ========================================================= */
 .hero { position: relative; min-height: 90svh; display: flex; align-items: flex-end; isolation: isolate; overflow: hidden; padding: calc(var(--nav-h) + 48px) 0 clamp(44px, 6vw, 80px); }
 .hero-media { position: absolute; inset: 0; z-index: -2; }
-.hero-media img { width: 100%; height: 100%; object-fit: cover; object-position: 60% 30%; }
+/* Na širokých obrazovkách je úvodní fotka na šířku, na telefonu se
+   prohlížeč přepne na výškový výřez (<source> v index.html) — jinak by
+   z ní na úzkém displeji zbyl jen svislý proužek. */
+.hero-media picture { display: block; position: absolute; inset: 0; }
+.hero-media img { width: 100%; height: 100%; object-fit: cover; object-position: 58% 32%; }
+@media (max-width: 760px) { .hero-media img { object-position: 50% 18%; } }
 .hero::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(10,11,13,.6) 0%, rgba(10,11,13,.25) 35%, rgba(10,11,13,.55) 65%, var(--bg) 100%), linear-gradient(90deg, rgba(10,11,13,.75) 0%, rgba(10,11,13,.1) 70%); }
 .hero h1 { max-width: 16ch; margin: 14px 0 18px; }
 .hero .lead { color: rgba(242,243,245,.82); margin-bottom: 30px; }
@@ -343,7 +348,12 @@ html:has(.pillnav) { scroll-padding-top: calc(var(--nav-h) + 68px); }
 .member { cursor: pointer; display: block; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; transition: border-color .3s, transform .35s var(--ease); }
 .member:hover { border-color: var(--line-2); transform: translateY(-3px); }
 .m-photo { position: relative; display: block; aspect-ratio: 1 / 1; overflow: hidden; background: linear-gradient(160deg, var(--surface-2), var(--bg-2)); }
-.m-photo img { width: 100%; height: 100%; object-fit: cover; object-position: center 22%; transition: transform .8s var(--ease); }
+/* Fotky člena leží přes sebe a plynule se střídají (viz main.js). Vidět
+   je vždycky ta s třídou is-on; první ji dostane už z generátoru, takže
+   bez JavaScriptu zůstane rovnou viditelná. */
+.m-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 22%;
+  opacity: 0; transition: opacity 1.8s var(--ease), transform .8s var(--ease); }
+.m-photo img.is-on { opacity: 1; }
 .member:hover .m-photo img { transform: scale(1.04); }
 .m-initials { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--head); font-weight: 800; font-size: clamp(1.8rem, 3vw, 2.4rem); color: var(--dim); letter-spacing: .02em; }
 .m-plus { position: absolute; right: 10px; bottom: 10px; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: var(--accent); color: var(--accent-ink); opacity: 0; transform: scale(.8); transition: opacity .3s, transform .35s var(--ease); }
@@ -362,7 +372,11 @@ html:has(.pillnav) { scroll-padding-top: calc(var(--nav-h) + 68px); }
 /* Fotka si nechá menší díl, zbytek šířky patří textu. Hodnoty v min() se
    postarají o to, že na užších a nižších obrazovkách se okno samo srazí. */
 .drawer-inner { position: relative; display: grid; grid-template-columns: min(440px, 46vh, 34vw) minmax(0, 1fr); max-height: inherit; }
-.drawer-photo { align-self: center; aspect-ratio: 1 / 1; margin: 22px 0 22px 22px; border-radius: var(--radius); overflow: hidden; }
+/* Rozkliknutá fotka je na výšku — vedle textu na to je místo a postava
+   se vejde celá. Na nízkých obrazovkách se výška zastropuje a fotka se
+   sama srazí do ležatějšího výřezu, ať se okno vejde na displej.
+   Na úzkých displejích jde fotka přes celou šířku nad text (viz níže). */
+.drawer-photo { align-self: start; aspect-ratio: 4 / 5; max-height: min(560px, 68vh); margin: 22px 0 22px 22px; border-radius: var(--radius); overflow: hidden; }
 .drawer .drawer-top { inset: 34px 14px auto 34px; }
 .drawer-inner:focus { outline: none; }
 .drawer-top { position: absolute; inset: 14px 14px auto 14px; z-index: 3; display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
@@ -631,7 +645,14 @@ a.who-card:hover .who-more svg { translate: 4px 0; }
 
 /* ===== Medailonek: vždy celý obsah bez vnitřního posouvání ===== */
 .drawer { width: min(940px, calc(100vw - 32px)); max-height: calc(100dvh - 24px); overflow-y: auto; overscroll-behavior: contain; }
-.drawer-inner { grid-template-columns: min(400px, 42vw) minmax(0, 1fr); max-height: none; align-items: center; }
+/* Fotka vedle textu. Roste s ním, ale jen v daném rozmezí — u krátkého
+   medailonku si vynutí svou výšku (a vyjde zhruba 4:5, na což jsou
+   výřezy dělané), u dlouhého se zastaví, aby z ní nebyl úzký pruh.
+   Tím vedle textu nezůstává prázdná plocha. */
+.drawer-inner { grid-template-columns: min(460px, 40vw) minmax(0, 1fr); max-height: none; align-items: start; }
+.drawer-photo { align-self: stretch; aspect-ratio: auto; min-height: min(560px, 68vh); max-height: min(680px, 80vh); }
+/* Krátký medailonek se srovná na střed fotky, ať text nevisí v rohu. */
+.drawer-body { align-self: stretch; display: flex; flex-direction: column; justify-content: center; }
 .drawer-body { max-height: none; overflow: visible; }
 .drawer-body .drawer-name { font-size: clamp(1.7rem, 3.6vw, 2.15rem); margin: 0; }
 .drawer-nick { display: block; margin-top: 4px; color: var(--dim); font-weight: 400; font-size: .95rem; }
@@ -651,11 +672,15 @@ a.who-card:hover .who-more svg { translate: 4px 0; }
   .who-grid { grid-template-columns: 1fr; }
   .who-card { min-height: 0; }
 }
-@media (max-width: 720px) {
+/* Užší displeje: dvousloupcové rozvržení by text zmáčklo do úzkého
+   proužku, proto se fotka přesune nad něj a jde přes celou šířku.
+   Na nízkých displejích se zastropuje a sama se ořízne doležata. */
+@media (max-width: 900px) {
   .drawer-inner { grid-template-columns: 1fr; align-items: start; }
-  .drawer-photo { width: 120px; margin: 20px 0 0 20px; border-radius: var(--radius-s); }
-  .drawer .drawer-top { inset: 20px 20px auto 156px; }
-  .drawer-body { padding: 18px 20px 24px; }
+  /* `relative`, ne `static` — fotka uvnitř je polohovaná vůči tomuhle rámu. */
+  .drawer-photo { position: relative; width: auto; aspect-ratio: 1 / 1; max-height: 46vh; margin: 0; border-radius: 0; }
+  .drawer .drawer-top { inset: 14px 14px auto auto; }
+  .drawer-body { padding: 22px 22px 26px; }
 }
 @media (max-width: 560px) {
   .ah-facts { gap: 8px; }
@@ -684,8 +709,6 @@ a.who-card:hover .who-more svg { translate: 4px 0; }
   .drawer-prev { grid-area: prev; justify-self: start; }
   .drawer-next { grid-area: next; justify-self: end; }
   .drawer .drawer-top { inset: 14px 14px auto auto; }
-  .drawer-photo { width: 120px; margin: 20px 0 0 20px; }
-  .drawer-body { padding: 18px 20px 24px; }
 }
 
 /* =========================================================
@@ -743,7 +766,6 @@ a.who-card:hover .who-more svg { translate: 4px 0; }
   .pkg-body, .pkg-col { gap: 12px; }
   .who-card { padding: 22px; }
   .steps li { padding: 14px 16px; }
-  .drawer-photo { width: 104px; }
   .form { padding: 20px 18px 22px; }
   .field input, .field textarea { font-size: 16px; }
   .footer-about p { max-width: none; }
@@ -812,14 +834,21 @@ a.who-card:hover .who-more svg { translate: 4px 0; }
    ========================================================= */
 /* Sekce má jen jeden velký vystředěný nadpis, žádné označení ani popis. */
 .logos-title { max-width: 22ch; margin: 0 auto; text-align: center; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.02em; color: var(--text); }
+/* Záře u krajních log vyčnívá ven z obrazovky, proto se celá sekce
+   ořízne — jinak by se stránkou na telefonu šlo posouvat do strany. */
+.section:has(.logos) { overflow: hidden; }
 .logos { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 32px; margin-top: clamp(36px, 4.5vw, 56px); }
 .logo-item { position: relative; display: flex; align-items: center; justify-content: center; height: 96px;
   transition: translate .35s var(--ease); }
 
 /* Loga svítí pořád stejně a nic se samo nehýbe — efekt se pustí až při
    najetí kurzorem: měkká bílá záře za logem, zvětšení a drobné nadzvednutí. */
-.logo-item::before { content: ""; position: absolute; inset: -34% -22%; border-radius: 50%; pointer-events: none;
-  background: radial-gradient(closest-side, rgba(255, 255, 255, .09), transparent 78%);
+/* Záře se rozměřuje podle loga, ne podle buňky: k šířce loga se přidá pevných
+   100 px, takže i úzký znak obce dostane záři výrazně širší než sám je —
+   u procent by u něj vyšla pořád úzká. Výška vychází z výšky řádku. */
+.logo-item::before { content: ""; position: absolute; left: 50%; top: 50%; translate: -50% -50%;
+  width: calc(100% + 100px); height: calc(100% + 44px); border-radius: 50%; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, .055), rgba(255, 255, 255, .022) 45%, transparent 78%);
   opacity: 0; transition: opacity .35s var(--ease); }
 
 /* Každé logo má vlastní rozměry (třídy .lg-* níže) spočítané tak, aby měla

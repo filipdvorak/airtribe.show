@@ -344,6 +344,52 @@
     syncPs();
   }
 
+  /* ---- Počty let se dopočítají samy ----
+     Každý údaj typu „12 let tréninku parkouru“ je v HTML zapsaný jako
+     <span class="pocet-let" data-od="2014">12</span>. Generátor do něj vloží
+     aktuální číslo už při sestavení webu, tohle ho navíc přepočítá přímo
+     v prohlížeči — takže naroste i na stránce, která se mezitím
+     negenerovala. Nový údaj stačí označit stejnou třídou, nic dalšího. */
+  Array.prototype.slice.call(document.querySelectorAll(".pocet-let[data-od]")).forEach(function (el) {
+    var od = parseInt(el.getAttribute("data-od"), 10);
+    if (!od) return;
+    var pocet = new Date().getFullYear() - od;
+    if (pocet >= 0) el.textContent = pocet;
+  });
+
+  /* ---- Prolínání fotek členů ----
+     Člen může mít víc fotek (leží ve složce img/tym/<slug>/). V HTML
+     jsou naskládané přes sebe a vidět je vždycky ta s třídou „is-on“ —
+     tohle ji po chvíli přehodí na další a CSS se postará o pozvolný
+     přechod. Střídají se ale jenom ve velkém zobrazení člena, tedy
+     v otevřeném medailonku; v mřížce karet zůstává první fotka
+     v klidu. Fotka se nepřepíná, když na ni není vidět (jiná záložka,
+     mimo obraz), a vůbec se nerozběhne, když si uživatel v systému
+     vypnul animace. Nová fotka ve složce se přidá sama, tady není
+     co nastavovat. */
+  var PROLNUTI_PAUZA = 6500;   /* jak dlouho je jedna fotka vidět (ms) */
+  var prolinaniVypnuto = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function prolinani(stoh) {
+    if (prolinaniVypnuto || !stoh) return;
+    var fotky = Array.prototype.slice.call(stoh.querySelectorAll("img"));
+    if (fotky.length < 2) return;
+
+    var i = Math.max(0, fotky.indexOf(stoh.querySelector("img.is-on")));
+    var dal = function () {
+      /* Se zavřeným medailonkem zmizí z dokumentu i klon fotek —
+         pak už není co střídat a další čas se neplánuje. */
+      if (!stoh.isConnected) return;
+      if (!document.hidden) {
+        fotky[i].classList.remove("is-on");
+        i = (i + 1) % fotky.length;
+        fotky[i].classList.add("is-on");
+      }
+      setTimeout(dal, PROLNUTI_PAUZA);
+    };
+    setTimeout(dal, PROLNUTI_PAUZA);
+  }
+
   /* ---- Medailonky členů týmu ---- */
   var drawer = document.getElementById("memberDrawer");
   var members = Array.prototype.slice.call(document.querySelectorAll(".member"));
@@ -355,9 +401,16 @@
     var fill = function (k) {
       cur = (k + members.length) % members.length;
       var m = members[cur];
-      var ph = m.querySelector(".m-photo").cloneNode(true);
-      var im = ph.querySelector("img"); if (im) im.removeAttribute("loading");
+      /* Rozkliknutý medailonek má vlastní sadu fotek (<template class="m-velke">):
+         na širokých obrazovkách fotku na výšku, na úzkých čtverec. Uvnitř
+         <template> se soubory nestahují, dokud medailonek někdo neotevře.
+         Kdyby šablona chyběla, vezme se fotka z karty. */
+      var sablona = m.querySelector("template.m-velke");
+      var ph = sablona ? sablona.content.firstElementChild.cloneNode(true)
+                       : m.querySelector(".m-photo").cloneNode(true);
+      ph.querySelectorAll("img").forEach(function (im) { im.removeAttribute("loading"); });
       dPhoto.innerHTML = ""; dPhoto.appendChild(ph);
+      prolinani(ph);
       dNick.textContent = m.dataset.nick ? "„" + m.dataset.nick + "“" : "";
       dNick.hidden = !m.dataset.nick;
       dName.textContent = m.dataset.name;
