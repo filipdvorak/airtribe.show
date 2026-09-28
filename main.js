@@ -306,6 +306,15 @@
       var row = btn.closest(".ps");
       return row ? row.querySelector(".ps-body") : null;
     };
+    /* Zavře jednu položku (beze změny ostatních). */
+    var zavriPs = function (btn) {
+      var box = psBody(btn);
+      if (!box || btn.getAttribute("aria-expanded") !== "true") return;
+      btn.setAttribute("aria-expanded", "false");
+      box.classList.remove("is-open");
+      box.style.maxHeight = box.scrollHeight + "px";
+      requestAnimationFrame(function () { box.style.maxHeight = "0px"; });
+    };
     psBtns.forEach(function (btn, k) {
       var box = psBody(btn);
       if (!box) return;
@@ -314,6 +323,10 @@
       btn.addEventListener("click", function () {
         if (!narrow.matches) return;
         var on = btn.getAttribute("aria-expanded") !== "true";
+        /* V nabídce je rozkrytá vždy jen jedna položka — otevření další
+           tu předchozí zavře, ať se tabulka údajů nerozjede do dlouhého
+           sloupce, ve kterém se nedá nic najít. */
+        if (on) psBtns.forEach(function (jiny) { if (jiny !== btn) zavriPs(jiny); });
         btn.setAttribute("aria-expanded", on ? "true" : "false");
         box.classList.toggle("is-open", on);
         if (on) {
@@ -400,12 +413,26 @@
       if (!stoh.isConnected) return;
       if (!document.hidden) {
         fotky[i].classList.remove("is-on");
+        fotky[i].classList.remove("se-priblizuje");
         i = (i + 1) % fotky.length;
         fotky[i].classList.add("is-on");
+        priblizit(fotky[i]);
       }
       setTimeout(dal, PROLNUTI_PAUZA);
     };
+    priblizit(fotky[i]);
     setTimeout(dal, PROLNUTI_PAUZA);
+  }
+
+  /* Pomalé přiblížení fotky, dokud je vidět. Třída se musí přidat až
+     v dalším snímku — kdyby se nastavila hned s „is-on“, prohlížeč by
+     mezi starou a novou hodnotou transform neviděl žádnou změnu
+     a rovnou by skočil na konec. */
+  function priblizit(obr) {
+    if (!obr) return;
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { obr.classList.add("se-priblizuje"); });
+    });
   }
 
   /* ---- Úvodní fotky na domovské stránce ----
