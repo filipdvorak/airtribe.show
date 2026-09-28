@@ -388,41 +388,8 @@
   }
   prepocitejLeta(document);
 
-  /* ---- Prolínání fotek členů ----
-     Člen může mít víc fotek (leží ve složce img/tym/<slug>/). V HTML
-     jsou naskládané přes sebe a vidět je vždycky ta s třídou „is-on“ —
-     tohle ji po chvíli přehodí na další a CSS se postará o pozvolný
-     přechod. Střídají se ale jenom ve velkém zobrazení člena, tedy
-     v otevřeném medailonku; v mřížce karet zůstává první fotka
-     v klidu. Fotka se nepřepíná, když na ni není vidět (jiná záložka,
-     mimo obraz), a vůbec se nerozběhne, když si uživatel v systému
-     vypnul animace. Nová fotka ve složce se přidá sama, tady není
-     co nastavovat. */
   var PROLNUTI_PAUZA = 6500;   /* jak dlouho je jedna fotka vidět (ms) */
   var prolinaniVypnuto = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  function prolinani(stoh) {
-    if (prolinaniVypnuto || !stoh) return;
-    var fotky = Array.prototype.slice.call(stoh.querySelectorAll("img"));
-    if (fotky.length < 2) return;
-
-    var i = Math.max(0, fotky.indexOf(stoh.querySelector("img.is-on")));
-    var dal = function () {
-      /* Se zavřeným medailonkem zmizí z dokumentu i klon fotek —
-         pak už není co střídat a další čas se neplánuje. */
-      if (!stoh.isConnected) return;
-      if (!document.hidden) {
-        fotky[i].classList.remove("is-on");
-        fotky[i].classList.remove("se-priblizuje");
-        i = (i + 1) % fotky.length;
-        fotky[i].classList.add("is-on");
-        priblizit(fotky[i]);
-      }
-      setTimeout(dal, PROLNUTI_PAUZA);
-    };
-    priblizit(fotky[i]);
-    setTimeout(dal, PROLNUTI_PAUZA);
-  }
 
   /* Pomalé přiblížení fotky, dokud je vidět. Třída se musí přidat až
      v dalším snímku — kdyby se nastavila hned s „is-on“, prohlížeč by
@@ -436,24 +403,67 @@
   }
 
   /* ---- Úvodní fotky na domovské stránce ----
-     Stejné střídání jako v medailonku. První fotka je v HTML se zdrojem
-     rovnou, zbylé mají adresu schovanou v data-src a doplní se jim až
-     po načtení stránky — ať úvodní zobrazení není pomalejší kvůli
-     fotkám, které uvidí až za chvíli. */
+     V HTML leží dvě sady přes sebe: fotky na šířku (`h-siroka`) pro
+     počítač a fotky na výšku (`h-uzka`) pro telefon. CSS jednu z nich
+     schová podle šířky displeje, tady se pak střídá jenom ta viditelná
+     — druhá sada se ani nestáhne. První snímek obou sad je jeden
+     <picture>, které si správnou verzi vybere samo už při načtení.
+     Zbylé mají adresu v data-src a doplní se až po načtení stránky,
+     ať úvodní zobrazení není pomalejší kvůli fotkám, které uvidí
+     uživatel až za chvíli. */
   var uvodniFotky = document.querySelector(".hero-media");
-  if (uvodniFotky && uvodniFotky.querySelectorAll("img").length > 1 && !prolinaniVypnuto) {
-    var dotahni = function () {
-      uvodniFotky.querySelectorAll("source[data-srcset]").forEach(function (z) {
-        z.srcset = z.getAttribute("data-srcset"); z.removeAttribute("data-srcset");
-      });
-      uvodniFotky.querySelectorAll("img[data-src]").forEach(function (o) {
+  if (uvodniFotky && !prolinaniVypnuto) {
+    var uzkyDisplej = window.matchMedia("(max-width: 760px)");
+    var strida = null;
+
+    var heroSada = function () {
+      var prvni = uvodniFotky.querySelector("picture img");
+      var dalsi = uvodniFotky.querySelectorAll(uzkyDisplej.matches ? "img.h-uzka" : "img.h-siroka");
+      return (prvni ? [prvni] : []).concat(Array.prototype.slice.call(dalsi));
+    };
+
+    var dotahni = function (fotky) {
+      fotky.forEach(function (o) {
+        if (!o.hasAttribute("data-src")) return;
         if (o.hasAttribute("data-srcset")) { o.srcset = o.getAttribute("data-srcset"); o.removeAttribute("data-srcset"); }
         o.src = o.getAttribute("data-src"); o.removeAttribute("data-src");
       });
-      prolinani(uvodniFotky);
     };
-    if (document.readyState === "complete") setTimeout(dotahni, 500);
-    else window.addEventListener("load", function () { setTimeout(dotahni, 500); });
+
+    /* Rozjede střídání nad tou sadou, která je zrovna vidět. Volá se
+       znovu i při překlopení displeje přes 760 px — druhá sada tehdy
+       začíná zase od své první fotky. */
+    var rozjedHero = function () {
+      if (strida) { clearTimeout(strida); strida = null; }
+      var fotky = heroSada();
+      if (!fotky.length) return;
+      dotahni(fotky);
+      uvodniFotky.querySelectorAll("img").forEach(function (o) {
+        o.classList.remove("is-on"); o.classList.remove("se-priblizuje");
+      });
+      fotky[0].classList.add("is-on");
+      priblizit(fotky[0]);
+      if (fotky.length < 2) return;
+      var i = 0;
+      var dal = function () {
+        if (!document.hidden) {
+          fotky[i].classList.remove("is-on");
+          fotky[i].classList.remove("se-priblizuje");
+          i = (i + 1) % fotky.length;
+          fotky[i].classList.add("is-on");
+          priblizit(fotky[i]);
+        }
+        strida = setTimeout(dal, PROLNUTI_PAUZA);
+      };
+      strida = setTimeout(dal, PROLNUTI_PAUZA);
+    };
+
+    var start = function () { setTimeout(rozjedHero, 500); };
+    if (document.readyState === "complete") start();
+    else window.addEventListener("load", start);
+    (uzkyDisplej.addEventListener
+      ? uzkyDisplej.addEventListener("change", rozjedHero)
+      : uzkyDisplej.addListener(rozjedHero));
   }
 
   /* ---- Medailonky členů týmu ---- */

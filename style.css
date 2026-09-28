@@ -14,7 +14,7 @@
   --line-2:    rgba(255, 255, 255, 0.14);
   --text:      #f2f3f5;
   --muted:     #a4a9b1;
-  --dim:       #737983;
+  --dim:       #868c96;   /* přezdívky a poznámky: 5,8 : 1 — #737983 bylo 4,5, tedy těsně na hraně čitelnosti */
   --accent:    #ffab1a;
   --accent-2:  #ffc75a;
   --accent-ink:#241400;
@@ -48,11 +48,20 @@ h1, h2, h3, h4 { margin: 0; font-family: var(--head); font-weight: 700; letter-s
 ::selection { background: var(--accent); color: var(--accent-ink); }
 
 /* Barevná témata sekcí: jantarová = vystoupení, smaragdová = workshopy a výuka,
-   fialová = kombinace a akce na míru, modrá = kvalifikace a bezpečnost. */
-.t-show  { --accent: #ffab1a; --accent-2: #ffc75a; --accent-ink: #241400; --accent-soft: rgba(255,171,26,.16); }
-.t-learn { --accent: #19dca0; --accent-2: #6bf0c6; --accent-ink: #02241a; --accent-soft: rgba(25,220,160,.16); }
-.t-mix   { --accent: #b45cff; --accent-2: #d3a4ff; --accent-ink: #1d0b33; --accent-soft: rgba(180,92,255,.18); }
-.t-trust { --accent: #25b3ff; --accent-2: #81d6ff; --accent-ink: #03202e; --accent-soft: rgba(37,179,255,.16); }
+   fialová = kombinace a akce na míru, modrá = kvalifikace a bezpečnost.
+
+   Jantarová je hlavní barva značky, takže musí zůstat ze všech nejvýraznější
+   (kontrast 10,4 : 1 vůči pozadí). Ostatní jsou o stupínek tišší, ale žádná
+   nesmí spadnout pod ~7 : 1 — jinak na tmavém pozadí zešedne a ikona v dlaždici
+   se skoro ztratí. Čísla v závorce jsou kontrast vůči pozadí #0a0b0d.
+
+   Původní fialová #b45cff měla jen 5,6 : 1 a byla vedle ostatních viditelně
+   temnější, zelená #19dca0 naopak 11,1 : 1, tedy svítivější než sama značka —
+   proto je teď fialová světlejší a zelená o něco klidnější. */
+.t-show  { --accent: #ffab1a; --accent-2: #ffc75a; --accent-ink: #241400; --accent-soft: rgba(255,171,26,.16); }  /* 10,4 */
+.t-learn { --accent: #2ec996; --accent-2: #7ce0bd; --accent-ink: #02241a; --accent-soft: rgba(46,201,150,.16); }  /*  9,3 */
+.t-mix   { --accent: #c884f5; --accent-2: #dfb6fb; --accent-ink: #1d0b33; --accent-soft: rgba(200,132,245,.16); } /*  7,6 */
+.t-trust { --accent: #25b3ff; --accent-2: #81d6ff; --accent-ink: #03202e; --accent-soft: rgba(37,179,255,.16); }  /*  8,4 */
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
 .wrap { width: 100%; max-width: var(--wrap); margin: 0 auto; padding: 0 var(--gutter); }
@@ -153,6 +162,14 @@ h1, h2, h3, h4 { margin: 0; font-family: var(--head); font-weight: 700; letter-s
    prohlížeč přechod nespustil. Při odchodu se zase odebere — návrat zpět
    trvá taky 12 s, takže za ty dvě vteřiny prolnutí není vidět. */
 .hero-media img.se-priblizuje { transform: scale(1.04); }
+/* Dvě samostatné sady: fotky na šířku pro počítač, na výšku pro telefon.
+   Ta nepoužitá se schová a main.js jí ani nedoplní zdroj, takže se
+   nestahuje. První snímek obou sad je společné <picture>. */
+.hero-media .h-uzka { display: none; }
+@media (max-width: 760px) {
+  .hero-media .h-siroka { display: none; }
+  .hero-media .h-uzka { display: block; }
+}
 @media (max-width: 760px) {
   .hero-media img { object-position: var(--pos-uzky, var(--pos, 50% 35%)); }
   /* Na úzkém displeji se text odsune níž, aby nad ním zůstal pruh, kde je
@@ -811,11 +828,17 @@ a.who-card:hover .who-more svg { translate: 4px 0; }
 /* Dotykové ovládání: větší plochy pro prst */
 @media (pointer: coarse) {
   a, button, [role="button"], input, textarea, select { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
-  .car-arrow { width: 44px; height: 44px; }
-  .car-arrow svg { width: 18px; height: 18px; }
-  .car-dots { gap: 0; margin-top: 8px; }
-  .car-dots button { width: 32px; height: 32px; padding: 12px; background-clip: content-box; }
-  .car-dots button[aria-current="true"] { width: 34px; height: 34px; }
+  /* Na dotykovém displeji se karusel ovládá tažením, takže šipky jen
+     zabírají místo a odvádějí pozornost od fotky — zůstanou jenom
+     drobné tečky. Vidět je z nich 5 px, ale prstem se dá trefit
+     plocha 30 px, protože kroužek je vykreslený až uvnitř odsazení. */
+  .car-arrow { display: none; }
+  .car-ctr { gap: 0; }
+  .car-dots { gap: 0; margin-top: 6px; }
+  .car-dots button { width: 30px; height: 30px; padding: 12.5px; background-clip: content-box;
+    background-color: rgba(242, 243, 245, .3); }
+  .car-dots button[aria-current="true"] { width: 30px; height: 30px; padding: 11.5px;
+    background-color: rgba(242, 243, 245, .8); }
   .footer-col a, .footer-col span { padding: 9px 0; }
   .nav-links a { padding-block: 10px; }
   .logo { padding-block: 7px; }
@@ -896,8 +919,14 @@ a.who-card:hover .who-more svg { translate: 4px 0; }
 .pkg.is-flipped .pkg-gal { order: 2; }
 .car-compact .car-stage { display: block; }
 .car-compact .car-viewport { border-radius: var(--radius); box-shadow: var(--shadow); }
-.pkg-shot { margin: 0; aspect-ratio: 1 / 1; overflow: hidden; border-radius: var(--radius); background: var(--surface); }
-.pkg-shot img { width: 100%; height: 100%; object-fit: cover; }
+/* Fotky v nabídce nejsou všechny čtvercové. Rám čtvercový zůstává (jinak
+   by se při přepnutí snímku poskakovala výška celé sekce), ale fotka se
+   do něj vejde celá — nic se neořezává. Prázdné místo vyplní rozmazaná
+   kopie téže fotky, takže to nepůsobí jako díra vedle snímku. */
+.pkg-shot { position: relative; margin: 0; aspect-ratio: 1 / 1; overflow: hidden; border-radius: var(--radius); background: var(--surface); }
+.pkg-shot::before { content: ""; position: absolute; inset: 0; background: var(--foto) center / cover no-repeat;
+  filter: blur(26px) saturate(.75) brightness(.4); transform: scale(1.25); }
+.pkg-shot img { position: relative; width: 100%; height: 100%; object-fit: contain; }
 .car-ctr { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 12px; }
 .car-ctr .car-dots { margin-top: 0; }
 .pkg-gal:focus-visible { outline: 2px solid var(--accent); outline-offset: 6px; border-radius: calc(var(--radius) + 4px); }
