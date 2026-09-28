@@ -18,27 +18,6 @@
   document.body.appendChild(blur);
   var pillBar = document.querySelector(".pillnav");
 
-  /* ---- Lišta na O nás: na mobilu pod tlačítka v úvodu ----
-     V HTML sedí mezi úvodní sekcí a „Kdo jsme“, což je místo pro
-     počítač. Na užším displeji patří výš — hned pod tlačítka v úvodu,
-     ať ji návštěvník má po ruce dřív. Přesouvá se, protože CSS umí
-     přemístit prvek jen v rámci jednoho rodiče. */
-  var listaOnas = document.querySelector(".pillnav-onas");
-  if (listaOnas) {
-    var uvodniText = document.querySelector(".ah-text"), uvodniSekce = document.querySelector(".ah");
-    var uzkyUvod = window.matchMedia("(max-width: 1024px)");
-    var presunListu = function () {
-      if (!uvodniText || !uvodniSekce) return;
-      if (uzkyUvod.matches) {
-        if (listaOnas.parentNode !== uvodniText) uvodniText.appendChild(listaOnas);
-      } else if (uvodniSekce.nextElementSibling !== listaOnas) {
-        uvodniSekce.parentNode.insertBefore(listaOnas, uvodniSekce.nextSibling);
-      }
-    };
-    presunListu();
-    (uzkyUvod.addEventListener ? uzkyUvod.addEventListener("change", presunListu) : uzkyUvod.addListener(presunListu));
-  }
-
   /* ---- Kam přesně skákat na sekci ----
      Horní hrana sekce má dosednout přesně pod pevnou hlavičku a pod
      přilepenou orientační lištu. Výška obou se měří ze stránky, ne

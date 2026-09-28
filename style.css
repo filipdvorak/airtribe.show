@@ -191,7 +191,11 @@ h1, h2, h3, h4 { margin: 0; font-family: var(--head); font-weight: 700; letter-s
   .hero-media img { object-position: var(--pos-uzky, var(--pos, 50% 35%)); }
   /* Na úzkém displeji se text odsune níž, aby nad ním zůstal pruh, kde je
      fotka opravdu vidět, a horní část ztmavení se zjemní. */
-  .hero { padding-top: calc(var(--nav-h) + 24vh); }
+  /* Čím vyšší pás, tím užší je jeho poměr a tím víc se z fotky ubere ze
+     stran. Odsazení drží text dost nízko, ale pás nechá v poměru kolem
+     0,59 — při něm je z fotky 2:3 vidět asi 88 % šířky. Kontrola poměru
+     je i v gen/hero_fotky.py. */
+  .hero { padding-top: calc(var(--nav-h) + 13vh); }
   .hero::after { background:
     linear-gradient(180deg, rgba(10,11,13,.35) 0%, rgba(10,11,13,.1) 16%, rgba(10,11,13,.62) 44%, var(--bg) 100%); }
 }
@@ -212,14 +216,8 @@ h1, h2, h3, h4 { margin: 0; font-family: var(--head); font-weight: 700; letter-s
 html { scroll-padding-top: var(--odsazeni-scroll, calc(var(--nav-h) + 8px)); }
 .pillnav { position: sticky; top: var(--nav-h); z-index: 60; background: rgba(10,11,13,.78); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
 .pillnav.docked { background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; }
-/* Lišta na O nás: v HTML leží mezi úvodní sekcí a „Kdo jsme" (tak je
-   vidět na počítači). Na mobilu ji main.js přesune do úvodu pod tlačítka
-   — tam už se nepřilepuje, protože uvnitř úvodní sekce by se přilepila
-   jen po její konec a působilo by to rozbitě. */
-@media (max-width: 1024px) {
-  .pillnav-onas { position: static; margin-top: 22px; background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; }
-  .pillnav-onas .wrap { padding-left: 0; padding-right: 0; }
-}
+/* Lišta na O nás leží mezi úvodní sekcí a „Kdo jsme" a přilepuje se
+   stejně jako na domovské stránce. */
 .pillnav .wrap { display: flex; justify-content: center; gap: 8px; padding-top: 12px; padding-bottom: 12px; overflow-x: auto; scrollbar-width: none; }
 .pillnav .wrap::-webkit-scrollbar { display: none; }
 .pillnav a { flex: none; padding: 8px 16px; border-radius: 999px; border: 1px solid var(--line-2); font-size: .9rem; font-weight: 500; color: var(--muted); white-space: nowrap; transition: color .2s, background .2s, border-color .2s; }
@@ -857,12 +855,11 @@ a.who-card:hover .who-more svg { translate: 4px 0; }
 }
 
 /* Na telefonu se lišta neposouvá do stran — všechny pilulky musí být
-   vidět naráz. Rozdělí se na stejně široké díly a písmo se zmenší podle
-   šířky displeje, aby se popisky vešly celé. */
+   vidět naráz. Zůstávají v běžné velikosti a místo posouvání se řádek
+   zalomí; zmenšovat písmo se neosvědčilo, popisky byly pak nečitelné. */
 @media (max-width: 760px) {
-  .pillnav .wrap { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
-    gap: 5px; overflow: visible; padding-left: 12px; padding-right: 12px; }
-  .pillnav a { padding: 7px 4px; text-align: center; font-size: clamp(.62rem, 3.05vw, .84rem); }
+  .pillnav .wrap { flex-wrap: wrap; justify-content: center; row-gap: 5px; overflow: visible;
+    padding-top: 8px; padding-bottom: 8px; }
 }
 
 /* Dotykové ovládání: větší plochy pro prst */
@@ -892,7 +889,7 @@ a.who-card:hover .who-more svg { translate: 4px 0; }
 /* Telefony */
 @media (max-width: 560px) {
   /* Horní odsazení nechává nad textem pruh, kde je úvodní fotka vidět. */
-  .hero { min-height: 82svh; padding-top: calc(var(--nav-h) + 22vh); }
+  .hero { min-height: 78svh; padding-top: calc(var(--nav-h) + 11vh); }
   .pkg + .pkg { margin-top: 44px; padding-top: 44px; }
   .cta { padding: 26px 20px; }
   .section { padding: var(--space) 0; }
