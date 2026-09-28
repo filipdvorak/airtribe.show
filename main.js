@@ -359,7 +359,8 @@
      negenerovala. Nový údaj stačí označit stejnou třídou, nic dalšího.
      Místo roku může být i přesné datum „2003-02-28“ — pak číslo naroste
      až v den výročí, ne už 1. ledna. Tak jsou zapsané věky členů. */
-  Array.prototype.slice.call(document.querySelectorAll(".pocet-let[data-od]")).forEach(function (el) {
+  function prepocitejLeta(koren) {
+  Array.prototype.slice.call((koren || document).querySelectorAll(".pocet-let[data-od]")).forEach(function (el) {
     var od = el.getAttribute("data-od") || "";
     var dnes = new Date(), casti = od.split("-"), rok = parseInt(casti[0], 10);
     if (!rok) return;
@@ -371,6 +372,8 @@
     }
     if (pocet >= 0) el.textContent = pocet;
   });
+  }
+  prepocitejLeta(document);
 
   /* ---- Prolínání fotek členů ----
      Člen může mít víc fotek (leží ve složce img/tym/<slug>/). V HTML
@@ -431,7 +434,7 @@
   var members = Array.prototype.slice.call(document.querySelectorAll(".member"));
   if (drawer && members.length && typeof drawer.showModal === "function") {
     var dPhoto = drawer.querySelector(".drawer-photo"), dNick = drawer.querySelector(".drawer-nick"),
-        dName = drawer.querySelector(".drawer-name"),
+        dName = drawer.querySelector(".drawer-name"), dVek = drawer.querySelector(".drawer-vek"),
         dBio = drawer.querySelector(".drawer-bio"), dInner = drawer.querySelector(".drawer-body");
     var cur = 0, opener = null;
     var fill = function (k) {
@@ -451,6 +454,12 @@
       dNick.hidden = !m.dataset.nick;
       dName.textContent = m.dataset.name;
       dBio.innerHTML = m.querySelector(".member-bio").innerHTML;
+      /* Věk nepatří mezi ostatní štítky — stojí vpravo na úrovni jména. */
+      var vek = dBio.querySelector(".m-vek");
+      dVek.innerHTML = vek ? vek.innerHTML : "";
+      dVek.hidden = !vek;
+      if (vek) vek.remove();
+      prepocitejLeta(dBio); prepocitejLeta(dVek);
       dInner.scrollTop = 0;
       try { history.replaceState(null, "", "#" + m.id); } catch (e) {}
     };

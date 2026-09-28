@@ -51,3 +51,12 @@ a vyměň hodnotu `access_key` v `kontakt.html`.
 Každá fotka má vedle sebe zmenšenou variantu `nazev-800.jpg`, kterou si telefony stáhnou místo plné verze
 (v HTML je u obrázků `srcset`). Po přidání nové fotky do `img/` spusť v generátorech `python thumbs.py`
 a znovu vygeneruj stránky — varianta i `srcset` se doplní samy.
+
+## Rozbalovací podrobnosti v nabídce
+
+Na mobilu a tabletu (do 1160 px) je tabulka s údaji u každé položky nabídky schovaná pod tlačítkem
+„Podrobnosti“. Na počítači je vidět vždycky a tlačítko se nezobrazuje. Ovládá to `.pkg-toggle`
+ve `style.css` a `main.js`.
+
+Odkazy na `style.css` a `main.js` mají v HTML `?v=…` (konstanta `VER` v generátoru), aby si
+prohlížeče po nasazení natáhly novou verzi.
