@@ -17,6 +17,43 @@
   blur.className = "sticky-blur";
   document.body.appendChild(blur);
   var pillBar = document.querySelector(".pillnav");
+
+  /* ---- Lišta na O nás: na mobilu pod tlačítka v úvodu ----
+     V HTML sedí mezi úvodní sekcí a „Kdo jsme“, což je místo pro
+     počítač. Na užším displeji patří výš — hned pod tlačítka v úvodu,
+     ať ji návštěvník má po ruce dřív. Přesouvá se, protože CSS umí
+     přemístit prvek jen v rámci jednoho rodiče. */
+  var listaOnas = document.querySelector(".pillnav-onas");
+  if (listaOnas) {
+    var uvodniText = document.querySelector(".ah-text"), uvodniSekce = document.querySelector(".ah");
+    var uzkyUvod = window.matchMedia("(max-width: 1024px)");
+    var presunListu = function () {
+      if (!uvodniText || !uvodniSekce) return;
+      if (uzkyUvod.matches) {
+        if (listaOnas.parentNode !== uvodniText) uvodniText.appendChild(listaOnas);
+      } else if (uvodniSekce.nextElementSibling !== listaOnas) {
+        uvodniSekce.parentNode.insertBefore(listaOnas, uvodniSekce.nextSibling);
+      }
+    };
+    presunListu();
+    (uzkyUvod.addEventListener ? uzkyUvod.addEventListener("change", presunListu) : uzkyUvod.addListener(presunListu));
+  }
+
+  /* ---- Kam přesně skákat na sekci ----
+     Horní hrana sekce má dosednout přesně pod pevnou hlavičku a pod
+     přilepenou orientační lištu. Výška obou se měří ze stránky, ne
+     odhaduje — jinak sekce buď zaleze pod lištu, nebo pod ní zbude
+     mezera. Lišta se počítá, jen když se opravdu přilepuje. */
+  function odsazeniSkoku() {
+    var v = nav ? nav.offsetHeight : 0;
+    if (pillBar && getComputedStyle(pillBar).position === "sticky") v += pillBar.offsetHeight;
+    document.documentElement.style.setProperty("--odsazeni-scroll", v + "px");
+    return v;
+  }
+  odsazeniSkoku();
+  window.addEventListener("resize", odsazeniSkoku);
+  window.addEventListener("load", odsazeniSkoku);
+
   function onScroll() {
     var y = window.scrollY;
     var solid = y > 24;
@@ -74,7 +111,9 @@
     var spyTick = false, lastActive = null;
     var spy = function () {
       spyTick = false;
-      var line = (nav ? nav.offsetHeight : 0) + 90, cur = -1;
+      /* Stejná hranice, na jakou skáče kliknutí — sekce se zvýrazní
+         přesně v okamžiku, kdy dosedne pod lišty (pár pixelů rezervy). */
+      var line = odsazeniSkoku() + 6, cur = -1;
       targets.forEach(function (t, k) { if (t && t.getBoundingClientRect().top <= line) cur = k; });
       if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) cur = targets.length - 1;
       pills.forEach(function (p, k) { p.classList.toggle("is-active", k === cur); });

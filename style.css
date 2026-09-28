@@ -137,17 +137,24 @@ h1, h2, h3, h4 { margin: 0; font-family: var(--head); font-weight: 700; letter-s
 
 .burger { display: none; position: relative; z-index: 2; width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line-2); background: transparent; cursor: pointer; }
 .burger span { position: absolute; left: 12px; right: 12px; height: 1.5px; background: var(--text); transition: transform .35s var(--ease), top .35s var(--ease); }
-.burger span:nth-child(1) { top: 17px; }
-.burger span:nth-child(2) { top: 25px; }
+.burger span { transition: transform .35s var(--ease), top .35s var(--ease), opacity .2s; }
+.burger span:nth-child(1) { top: 15px; }
+.burger span:nth-child(2) { top: 21px; }
+.burger span:nth-child(3) { top: 27px; }
+/* Otevřené menu: krajní čárky se zkříží, prostřední zmizí. */
 .menu-open .burger span:nth-child(1) { top: 21px; transform: rotate(45deg); }
-.menu-open .burger span:nth-child(2) { top: 21px; transform: rotate(-45deg); }
+.menu-open .burger span:nth-child(2) { opacity: 0; }
+.menu-open .burger span:nth-child(3) { top: 21px; transform: rotate(-45deg); }
 
 .menu { position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column; justify-content: space-between; padding: calc(var(--nav-h) + 20px) var(--gutter) 28px; background: var(--bg); opacity: 0; visibility: hidden; transform: translateY(-8px); transition: opacity .3s, transform .4s var(--ease), visibility 0s linear .4s; }
 .menu-open .menu { opacity: 1; visibility: visible; transform: none; transition: opacity .3s, transform .4s var(--ease), visibility 0s; }
 .menu ul { list-style: none; margin: 0; padding: 0; }
 .menu li { border-bottom: 1px solid var(--line); }
-.menu li a { display: flex; justify-content: space-between; align-items: center; padding: 18px 2px; font-family: var(--head); font-weight: 700; font-size: 1.6rem; letter-spacing: -0.02em; }
-.menu li a svg { width: 22px; height: 22px; color: var(--dim); }
+/* Velikost drží krok s tlačítkem Kontakt pod nimi (.btn má .95rem,
+   výšku 50 px) — dřív byly položky 1,6rem a vedle tlačítka působily
+   jako nadpisy, ne jako položky jednoho menu. */
+.menu li a { display: flex; justify-content: space-between; align-items: center; padding: 15px 2px; font-family: var(--head); font-weight: 700; font-size: 1.12rem; letter-spacing: -0.01em; }
+.menu li a svg { width: 18px; height: 18px; color: var(--dim); }
 .menu li a[aria-current="page"] { color: var(--accent); }
 .menu .btn { width: 100%; margin-top: 24px; }
 .menu-foot { display: grid; gap: 4px; color: var(--muted); font-size: .95rem; }
@@ -198,13 +205,21 @@ h1, h2, h3, h4 { margin: 0; font-family: var(--head); font-weight: 700; letter-s
 /* =========================================================
    Orientační lišta sekcí (domovská stránka)
    ========================================================= */
-html:has(.pillnav) { scroll-padding-top: calc(var(--nav-h) + 68px); }
+/* O kolik se skok na sekci odsadí, aby horní hrana sekce dosedla přesně
+   pod pevnou hlavičku a přilepenou orientační lištu. Přesnou hodnotu
+   dopočítá main.js podle skutečné výšky obou lišt; tahle je záloha,
+   kdyby JS neběžel. */
+html { scroll-padding-top: var(--odsazeni-scroll, calc(var(--nav-h) + 8px)); }
 .pillnav { position: sticky; top: var(--nav-h); z-index: 60; background: rgba(10,11,13,.78); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
 .pillnav.docked { background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; }
-/* Lišta hned pod menu (O nás). Potřebuje si sama odsadit výšku pevné
-   hlavičky, protože úvodní sekce pod ní o to odsazení přijde. */
-.pillnav-nahore { margin-top: var(--nav-h); }
-.pillnav-nahore + .ah { padding-top: clamp(24px, 3.5vw, 44px); }
+/* Lišta na O nás: v HTML leží mezi úvodní sekcí a „Kdo jsme" (tak je
+   vidět na počítači). Na mobilu ji main.js přesune do úvodu pod tlačítka
+   — tam už se nepřilepuje, protože uvnitř úvodní sekce by se přilepila
+   jen po její konec a působilo by to rozbitě. */
+@media (max-width: 1024px) {
+  .pillnav-onas { position: static; margin-top: 22px; background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .pillnav-onas .wrap { padding-left: 0; padding-right: 0; }
+}
 .pillnav .wrap { display: flex; justify-content: center; gap: 8px; padding-top: 12px; padding-bottom: 12px; overflow-x: auto; scrollbar-width: none; }
 .pillnav .wrap::-webkit-scrollbar { display: none; }
 .pillnav a { flex: none; padding: 8px 16px; border-radius: 999px; border: 1px solid var(--line-2); font-size: .9rem; font-weight: 500; color: var(--muted); white-space: nowrap; transition: color .2s, background .2s, border-color .2s; }
@@ -834,11 +849,20 @@ a.who-card:hover .who-more svg { translate: 4px 0; }
   .to-top { right: calc(14px + env(safe-area-inset-right)); bottom: calc(14px + env(safe-area-inset-bottom)); }
 }
 
-/* Orientační lišta: pohodlné posouvání prstem */
-@media (max-width: 900px) {
+/* Orientační lišta na tabletu: pohodlné posouvání prstem */
+@media (min-width: 761px) and (max-width: 900px) {
   .pillnav .wrap { overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; scroll-snap-type: x proximity; overscroll-behavior-x: contain; scroll-padding-left: var(--gutter); }
   .pillnav .wrap::-webkit-scrollbar { display: none; }
   .pillnav a { scroll-snap-align: start; }
+}
+
+/* Na telefonu se lišta neposouvá do stran — všechny pilulky musí být
+   vidět naráz. Rozdělí se na stejně široké díly a písmo se zmenší podle
+   šířky displeje, aby se popisky vešly celé. */
+@media (max-width: 760px) {
+  .pillnav .wrap { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
+    gap: 5px; overflow: visible; padding-left: 12px; padding-right: 12px; }
+  .pillnav a { padding: 7px 4px; text-align: center; font-size: clamp(.62rem, 3.05vw, .84rem); }
 }
 
 /* Dotykové ovládání: větší plochy pro prst */
@@ -890,7 +914,7 @@ a.who-card:hover .who-more svg { translate: 4px 0; }
 /* Na výšku i na šířku: ať úvod nezabere celou obrazovku */
 @media (max-height: 520px) and (orientation: landscape) {
   .hero { min-height: 0; padding: calc(var(--nav-h) + 28px) 0 32px; }
-  .menu li a { padding: 12px 2px; font-size: 1.25rem; }
+  .menu li a { padding: 13px 2px; font-size: 1.05rem; }
 }
 
 /* =========================================================
