@@ -390,6 +390,17 @@ html:has(.pillnav) { scroll-padding-top: calc(var(--nav-h) + 68px); }
 .m-shot { margin: 0; aspect-ratio: 4 / 5; overflow: hidden; background: var(--surface); }
 .m-shot img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .drawer-photo .car-ctr { margin-top: 10px; }
+/* Tečky u fotky člena jen nenápadně ukazují, kolikátá fotka je vidět —
+   nejsou to ovládací prvky, proto menší a tlumené. */
+.drawer-photo .car-dots button { width: 6px; height: 6px; background-color: rgba(255, 255, 255, .4); }
+.drawer-photo .car-dots button[aria-current="true"] { width: 7px; height: 7px; background-color: rgba(255, 255, 255, .92); }
+/* Na dotyk zůstává terčík velký, vidět je z něj ale jen malá tečka
+   (`background-clip: content-box` — pozor, zkratka `background` by ho
+   přepsala, proto se barva nastavuje přes `background-color`). */
+@media (pointer: coarse) {
+  .drawer-photo .car-dots button { width: 32px; height: 32px; padding: 13px; background-clip: content-box; }
+  .drawer-photo .car-dots button[aria-current="true"] { width: 32px; height: 32px; padding: 12.5px; }
+}
 .drawer .drawer-top { inset: 34px 14px auto 34px; }
 .drawer-inner:focus { outline: none; }
 .drawer-top { position: absolute; inset: 14px 14px auto 14px; z-index: 3; display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
@@ -745,6 +756,18 @@ a.who-card:hover .who-more svg { translate: 4px 0; }
   .drawer-panel { max-height: calc(100dvh - 96px); }
   /* Křížek zůstane po ruce i při posouvání textu. */
   .drawer .drawer-top { position: sticky; top: 14px; }
+  /* Na dotykovém displeji se fotky posouvají tažením, šipky jsou zbytečné.
+     Tečky se přesunou na spodní okraj fotky — tím se jméno i text pod ní
+     posunou výš a je hned vidět, že medailonek pokračuje dál. */
+  .drawer-photo .car-arrow { display: none; }
+  .drawer-photo .m-gal { position: relative; }
+  .drawer-photo .car-ctr { position: absolute; left: 0; right: 0; bottom: 8px;
+    margin: 0; gap: 0; pointer-events: none; z-index: 2; }
+  .drawer-photo .car-dots { pointer-events: auto; }
+  /* Jemné ztmavení pod tečkami, ať jsou čitelné i na světlé fotce. */
+  .drawer-photo .car-viewport { position: relative; }
+  .drawer-photo .car-viewport::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 72px;
+    background: linear-gradient(180deg, rgba(10, 11, 13, 0), rgba(10, 11, 13, .5)); pointer-events: none; }
 }
 
 /* =========================================================
