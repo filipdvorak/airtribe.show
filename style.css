@@ -138,12 +138,23 @@ h1, h2, h3, h4 { margin: 0; font-family: var(--head); font-weight: 700; letter-s
    ========================================================= */
 .hero { position: relative; min-height: 90svh; display: flex; align-items: flex-end; isolation: isolate; overflow: hidden; padding: calc(var(--nav-h) + 48px) 0 clamp(44px, 6vw, 80px); }
 .hero-media { position: absolute; inset: 0; z-index: -2; }
-/* Na širokých obrazovkách je úvodní fotka na šířku, na telefonu se
-   prohlížeč přepne na výškový výřez (<source> v index.html) — jinak by
-   z ní na úzkém displeji zbyl jen svislý proužek. */
+/* Úvodních fotek je pět, leží přes sebe a plynule se střídají (main.js).
+   Na širokých obrazovkách je to sada záběrů na šířku, na telefonu se
+   prohlížeč přepne na výškové výřezy (<source> v index.html) — jinak by
+   z fotky na úzkém displeji zbyl jen svislý proužek. Každá fotka si
+   v `--pos` nese, která její část má být v úzkém pásu vidět. */
 .hero-media picture { display: block; position: absolute; inset: 0; }
-.hero-media img { width: 100%; height: 100%; object-fit: cover; object-position: 58% 32%; }
-@media (max-width: 760px) { .hero-media img { object-position: 50% 18%; } }
+.hero-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  object-position: var(--pos, 50% 35%); opacity: 0; transition: opacity 2s var(--ease); }
+.hero-media img.is-on { opacity: 1; }
+@media (max-width: 760px) {
+  .hero-media img { object-position: var(--pos-uzky, var(--pos, 50% 35%)); }
+  /* Na úzkém displeji se text odsune níž, aby nad ním zůstal pruh, kde je
+     fotka opravdu vidět, a horní část ztmavení se zjemní. */
+  .hero { padding-top: calc(var(--nav-h) + 24vh); }
+  .hero::after { background:
+    linear-gradient(180deg, rgba(10,11,13,.35) 0%, rgba(10,11,13,.1) 16%, rgba(10,11,13,.62) 44%, var(--bg) 100%); }
+}
 .hero::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(10,11,13,.6) 0%, rgba(10,11,13,.25) 35%, rgba(10,11,13,.55) 65%, var(--bg) 100%), linear-gradient(90deg, rgba(10,11,13,.75) 0%, rgba(10,11,13,.1) 70%); }
 .hero h1 { max-width: 16ch; margin: 14px 0 18px; }
 .hero .lead { color: rgba(242,243,245,.82); margin-bottom: 30px; }
@@ -347,13 +358,10 @@ html:has(.pillnav) { scroll-padding-top: calc(var(--nav-h) + 68px); }
 .team { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; }
 .member { cursor: pointer; display: block; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; transition: border-color .3s, transform .35s var(--ease); }
 .member:hover { border-color: var(--line-2); transform: translateY(-3px); }
-.m-photo { position: relative; display: block; aspect-ratio: 1 / 1; overflow: hidden; background: linear-gradient(160deg, var(--surface-2), var(--bg-2)); }
-/* Fotky člena leží přes sebe a plynule se střídají (viz main.js). Vidět
-   je vždycky ta s třídou is-on; první ji dostane už z generátoru, takže
-   bez JavaScriptu zůstane rovnou viditelná. */
-.m-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 22%;
-  opacity: 0; transition: opacity 1.8s var(--ease), transform .8s var(--ease); }
-.m-photo img.is-on { opacity: 1; }
+/* Karta má stejný poměr jako výřez fotky (4:5), takže se z fotky nic
+   neořízne. Na kartě je jen první fotka člena, zbytek je v medailonku. */
+.m-photo { position: relative; display: block; aspect-ratio: 4 / 5; overflow: hidden; background: linear-gradient(160deg, var(--surface-2), var(--bg-2)); }
+.m-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .8s var(--ease); }
 .member:hover .m-photo img { transform: scale(1.04); }
 .m-initials { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--head); font-weight: 800; font-size: clamp(1.8rem, 3vw, 2.4rem); color: var(--dim); letter-spacing: .02em; }
 .m-plus { position: absolute; right: 10px; bottom: 10px; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: var(--accent); color: var(--accent-ink); opacity: 0; transform: scale(.8); transition: opacity .3s, transform .35s var(--ease); }
@@ -376,7 +384,12 @@ html:has(.pillnav) { scroll-padding-top: calc(var(--nav-h) + 68px); }
    se vejde celá. Na nízkých obrazovkách se výška zastropuje a fotka se
    sama srazí do ležatějšího výřezu, ať se okno vejde na displej.
    Na úzkých displejích jde fotka přes celou šířku nad text (viz níže). */
-.drawer-photo { align-self: start; aspect-ratio: 4 / 5; max-height: min(560px, 68vh); margin: 22px 0 22px 22px; border-radius: var(--radius); overflow: hidden; }
+.drawer-photo { align-self: start; margin: 22px 0 22px 22px; }
+/* Galerie fotek člena: karusel se šipkami, tečkami a tažením. Rámeček
+   má stejný poměr jako výřez fotky, takže se nic neořezává. */
+.m-shot { margin: 0; aspect-ratio: 4 / 5; overflow: hidden; background: var(--surface); }
+.m-shot img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.drawer-photo .car-ctr { margin-top: 10px; }
 .drawer .drawer-top { inset: 34px 14px auto 34px; }
 .drawer-inner:focus { outline: none; }
 .drawer-top { position: absolute; inset: 14px 14px auto 14px; z-index: 3; display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
@@ -397,7 +410,7 @@ html:has(.pillnav) { scroll-padding-top: calc(var(--nav-h) + 68px); }
 @media (max-width: 720px) {
   .drawer { max-height: calc(100dvh - 24px); overflow-y: auto; }
   .drawer-inner { grid-template-columns: 1fr; max-height: none; }
-  .drawer-photo { min-height: 0; aspect-ratio: 1 / 1; margin: 0; border-radius: 0; }
+  .drawer-photo { min-height: 0; margin: 0; border-radius: 0; }
   .drawer .drawer-top { inset: 14px 14px auto 14px; }
   .drawer-body { max-height: none; overflow: visible; padding-top: 24px; }
 }
@@ -645,14 +658,15 @@ a.who-card:hover .who-more svg { translate: 4px 0; }
 
 /* ===== Medailonek: vždy celý obsah bez vnitřního posouvání ===== */
 .drawer { width: min(940px, calc(100vw - 32px)); max-height: calc(100dvh - 24px); overflow-y: auto; overscroll-behavior: contain; }
-/* Fotka vedle textu. Roste s ním, ale jen v daném rozmezí — u krátkého
-   medailonku si vynutí svou výšku (a vyjde zhruba 4:5, na což jsou
-   výřezy dělané), u dlouhého se zastaví, aby z ní nebyl úzký pruh.
-   Tím vedle textu nezůstává prázdná plocha. */
-.drawer-inner { grid-template-columns: min(460px, 40vw) minmax(0, 1fr); max-height: none; align-items: start; }
-.drawer-photo { align-self: stretch; aspect-ratio: auto; min-height: min(560px, 68vh); max-height: min(680px, 80vh); }
-/* Krátký medailonek se srovná na střed fotky, ať text nevisí v rohu. */
-.drawer-body { align-self: stretch; display: flex; flex-direction: column; justify-content: center; }
+/* Fotka vedle textu, a to přesně v poměru, ve kterém je výřez udělaný
+   (4:5) — rám se nikdy neroztáhne jinak, takže se z fotky nic neořízne.
+   Šířku drží stejný výpočet jako sloupec mřížky, `58vh` ji na nízkých
+   obrazovkách zmenší, aby se okno vešlo na displej. */
+.drawer-inner { grid-template-columns: min(460px, 40vw, 58vh) minmax(0, 1fr); max-height: none; align-items: start; }
+.drawer-photo { align-self: center; width: auto; min-height: 0; max-height: none; }
+/* Text se srovná na střed fotky, ať krátký medailonek nevisí v rohu.
+   `safe` hlídá, aby se delší text nevysunul nahoru mimo okno. */
+.drawer-body { align-self: stretch; display: flex; flex-direction: column; justify-content: center; justify-content: safe center; }
 .drawer-body { max-height: none; overflow: visible; }
 .drawer-body .drawer-name { font-size: clamp(1.7rem, 3.6vw, 2.15rem); margin: 0; }
 .drawer-nick { display: block; margin-top: 4px; color: var(--dim); font-weight: 400; font-size: .95rem; }
@@ -677,8 +691,17 @@ a.who-card:hover .who-more svg { translate: 4px 0; }
    Na nízkých displejích se zastropuje a sama se ořízne doležata. */
 @media (max-width: 900px) {
   .drawer-inner { grid-template-columns: 1fr; align-items: start; }
-  /* `relative`, ne `static` — fotka uvnitř je polohovaná vůči tomuhle rámu. */
-  .drawer-photo { position: relative; width: auto; aspect-ratio: 1 / 1; max-height: 46vh; margin: 0; border-radius: 0; }
+  /* Galerie jde přes celou šířku nad text, ovládání zůstane pod fotkou.
+     Poměr 4:5 se nemění, takže se ani tady nic neořezává. */
+  .drawer-photo { position: relative; width: auto; max-height: none; margin: 0 0 6px; border-radius: 0; }
+  .drawer-photo .car-viewport, .drawer-photo .m-shot { border-radius: 0; box-shadow: none; }
+  /* fotka je nad textem, není co srovnávat na střed */
+  .drawer-body { display: block; }
+}
+/* Na tabletu by fotka přes celou šířku zabrala skoro celou obrazovku,
+   tak se zastropuje podle výšky okna — poměr 4:5 zůstává. */
+@media (min-width: 561px) and (max-width: 900px) {
+  .drawer-photo .m-gal { width: min(100%, 40vh); margin-inline: auto; }
   .drawer .drawer-top { inset: 14px 14px auto auto; }
   .drawer-body { padding: 22px 22px 26px; }
 }
@@ -752,7 +775,8 @@ a.who-card:hover .who-more svg { translate: 4px 0; }
 
 /* Telefony */
 @media (max-width: 560px) {
-  .hero { min-height: 78svh; padding-top: calc(var(--nav-h) + 32px); }
+  /* Horní odsazení nechává nad textem pruh, kde je úvodní fotka vidět. */
+  .hero { min-height: 82svh; padding-top: calc(var(--nav-h) + 22vh); }
   .pkg + .pkg { margin-top: 44px; padding-top: 44px; }
   .cta { padding: 26px 20px; }
   .section { padding: var(--space) 0; }

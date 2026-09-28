@@ -106,7 +106,9 @@
      šipkami na obrazovce, tečkami, šipkami na klávesnici a přejetím prstem/myší.
      Na začátek a konec se přidají kopie snímků, takže smyčka nemá viditelný konec. */
   var carousels = [];
-  document.querySelectorAll("[data-carousel]").forEach(function (root) {
+  /* Karusel se dá spustit i na kusu stránky, který vznikl až za běhu —
+     tak se rozjede i galerie fotek v otevřeném medailonku. */
+  function karusel(root) {
     var track = root.querySelector(".car-track");
     var viewport = root.querySelector(".car-viewport");
     var originals = Array.prototype.slice.call(track.children);
@@ -249,15 +251,20 @@
     build();
     restart();
     carousels.push({ root: root, next: function () { next(); restart(); }, prev: function () { prev(); restart(); }, isHovered: function () { return hovering; } });
-  });
+  }
+  document.querySelectorAll("[data-carousel]").forEach(karusel);
 
-  /* šipky na klávesnici: ovládají karusel pod kurzorem, zaostřený, jinak ten nejvíc viditelný */
-  if (carousels.length) {
+  /* šipky na klávesnici: ovládají karusel pod kurzorem, zaostřený, jinak ten nejvíc viditelný.
+     Posluchač se přidává vždy — karusel může vzniknout až později (medailonek). */
+  {
     document.addEventListener("keydown", function (e) {
       if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
       var t = e.target;
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      /* v otevřeném medailonku patří šipky přepínání členů, ne fotkám */
       if (document.querySelector("dialog[open]")) return;
+      /* karusely ze zavřených medailonků už v dokumentu nejsou */
+      carousels = carousels.filter(function (c) { return c.root.isConnected; });
       var pick = null, best = 0;
       carousels.forEach(function (c) {
         if (c.isHovered() || c.root.contains(document.activeElement)) { pick = c; best = 2; }
@@ -349,11 +356,19 @@
      <span class="pocet-let" data-od="2014">12</span>. Generátor do něj vloží
      aktuální číslo už při sestavení webu, tohle ho navíc přepočítá přímo
      v prohlížeči — takže naroste i na stránce, která se mezitím
-     negenerovala. Nový údaj stačí označit stejnou třídou, nic dalšího. */
+     negenerovala. Nový údaj stačí označit stejnou třídou, nic dalšího.
+     Místo roku může být i přesné datum „2003-02-28“ — pak číslo naroste
+     až v den výročí, ne už 1. ledna. Tak jsou zapsané věky členů. */
   Array.prototype.slice.call(document.querySelectorAll(".pocet-let[data-od]")).forEach(function (el) {
-    var od = parseInt(el.getAttribute("data-od"), 10);
-    if (!od) return;
-    var pocet = new Date().getFullYear() - od;
+    var od = el.getAttribute("data-od") || "";
+    var dnes = new Date(), casti = od.split("-"), rok = parseInt(casti[0], 10);
+    if (!rok) return;
+    var pocet = dnes.getFullYear() - rok;
+    if (casti.length === 3) {
+      var mesic = parseInt(casti[1], 10), den = parseInt(casti[2], 10);
+      var letos = dnes.getMonth() + 1 < mesic || (dnes.getMonth() + 1 === mesic && dnes.getDate() < den);
+      if (letos) pocet -= 1;        /* výročí letos ještě nebylo */
+    }
     if (pocet >= 0) el.textContent = pocet;
   });
 
@@ -390,6 +405,27 @@
     setTimeout(dal, PROLNUTI_PAUZA);
   }
 
+  /* ---- Úvodní fotky na domovské stránce ----
+     Stejné střídání jako v medailonku. První fotka je v HTML se zdrojem
+     rovnou, zbylé mají adresu schovanou v data-src a doplní se jim až
+     po načtení stránky — ať úvodní zobrazení není pomalejší kvůli
+     fotkám, které uvidí až za chvíli. */
+  var uvodniFotky = document.querySelector(".hero-media");
+  if (uvodniFotky && uvodniFotky.querySelectorAll("img").length > 1 && !prolinaniVypnuto) {
+    var dotahni = function () {
+      uvodniFotky.querySelectorAll("source[data-srcset]").forEach(function (z) {
+        z.srcset = z.getAttribute("data-srcset"); z.removeAttribute("data-srcset");
+      });
+      uvodniFotky.querySelectorAll("img[data-src]").forEach(function (o) {
+        if (o.hasAttribute("data-srcset")) { o.srcset = o.getAttribute("data-srcset"); o.removeAttribute("data-srcset"); }
+        o.src = o.getAttribute("data-src"); o.removeAttribute("data-src");
+      });
+      prolinani(uvodniFotky);
+    };
+    if (document.readyState === "complete") setTimeout(dotahni, 500);
+    else window.addEventListener("load", function () { setTimeout(dotahni, 500); });
+  }
+
   /* ---- Medailonky členů týmu ---- */
   var drawer = document.getElementById("memberDrawer");
   var members = Array.prototype.slice.call(document.querySelectorAll(".member"));
@@ -401,16 +437,16 @@
     var fill = function (k) {
       cur = (k + members.length) % members.length;
       var m = members[cur];
-      /* Rozkliknutý medailonek má vlastní sadu fotek (<template class="m-velke">):
-         na širokých obrazovkách fotku na výšku, na úzkých čtverec. Uvnitř
-         <template> se soubory nestahují, dokud medailonek někdo neotevře.
-         Kdyby šablona chyběla, vezme se fotka z karty. */
+      /* Rozkliknutý medailonek má vlastní galerii (<template class="m-velke">) —
+         karusel se šipkami, tečkami a tažením. Uvnitř <template> se fotky
+         nestahují, dokud medailonek někdo neotevře. Kdyby šablona chyběla,
+         ukáže se aspoň fotka z karty. */
       var sablona = m.querySelector("template.m-velke");
       var ph = sablona ? sablona.content.firstElementChild.cloneNode(true)
                        : m.querySelector(".m-photo").cloneNode(true);
       ph.querySelectorAll("img").forEach(function (im) { im.removeAttribute("loading"); });
       dPhoto.innerHTML = ""; dPhoto.appendChild(ph);
-      prolinani(ph);
+      if (ph.hasAttribute("data-carousel")) karusel(ph);
       dNick.textContent = m.dataset.nick ? "„" + m.dataset.nick + "“" : "";
       dNick.hidden = !m.dataset.nick;
       dName.textContent = m.dataset.name;
