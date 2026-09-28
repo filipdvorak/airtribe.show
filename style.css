@@ -786,11 +786,13 @@ a.who-card:hover .who-more svg { translate: 4px 0; }
   .drawer-prev { grid-area: prev; justify-self: start; }
   .drawer-next { grid-area: next; justify-self: end; }
   .drawer .drawer-top { inset: 14px 14px auto auto; }
-  /* Okno se přilepí k hornímu okraji a panelu se ubere výška na šipky pod
-     ním. Bez toho je medailonek i se šipkami vyšší než obrazovka, vystředí
-     se — a ořízne se pak nahoře i dole zároveň. */
-  .drawer { margin-block: 10px; }
-  .drawer[open] { align-content: start; }
+  /* Okno se vystředí na výšku. Aby se přitom nikdy neořízlo, má panel
+     zastropovanou výšku (obrazovka minus šipky pod ním a okraje) — díky
+     tomu je celé okno vždycky nižší než obrazovka a `margin: auto` ho může
+     bezpečně posadit doprostřed. Dřív bylo přilepené nahoru právě proto,
+     že bez toho stropu přerostlo obrazovku a ořízlo se nahoře i dole. */
+  .drawer { margin-block: auto; max-height: calc(100dvh - 20px); }
+  .drawer[open] { align-content: center; }
   .drawer-panel { max-height: calc(100dvh - 96px); }
   /* Křížek zůstane po ruce i při posouvání textu. Nesmí ale dostat vlastní
      řádek mřížky nad fotkou — dělal by nad ní prázdný pruh. Sdílí proto

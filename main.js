@@ -388,6 +388,25 @@
   }
   prepocitejLeta(document);
 
+  /* ---- Záchrana, když se nějaká fotka nestáhne ----
+     Fotky pro telefon jsou jiné soubory než ty pro počítač (`<picture>`
+     se `<source media>`). Když se verze pro telefon na server nedostane,
+     prohlížeč z <picture> sám na `<img src>` nepřepne a zůstane prázdné
+     místo. Tohle v takovém případě `<source>` zahodí a zkusí znovu
+     základní adresu — ukáže se aspoň verze pro počítač. */
+  document.addEventListener("error", function (e) {
+    var obr = e.target;
+    if (!obr || obr.tagName !== "IMG" || obr.dataset.nahrada) return;
+    var pic = obr.parentElement;
+    if (!pic || pic.tagName !== "PICTURE") return;
+    var zaklad = obr.getAttribute("src");
+    if (!zaklad) return;
+    obr.dataset.nahrada = "1";
+    pic.querySelectorAll("source").forEach(function (z) { z.remove(); });
+    obr.removeAttribute("srcset");
+    obr.src = zaklad;
+  }, true);
+
   var PROLNUTI_PAUZA = 6500;   /* jak dlouho je jedna fotka vidět (ms) */
   var prolinaniVypnuto = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
