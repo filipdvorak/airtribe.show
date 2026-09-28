@@ -22,7 +22,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=2026-09-28n" />
+  <link rel="stylesheet" href="style.css?v=2026-09-28o" />
 </head>
 <body>
   <a class="skip" href="#obsah">Přeskočit na obsah</a>
@@ -54,6 +54,18 @@
   </div>
 
   <main id="obsah">
+
+  <!-- ORIENTAČNÍ LIŠTA: hned pod menu, aby ji návštěvník měl po ruce
+       od prvního pohledu. Na domovské stránce je až pod úvodní fotkou,
+       tady žádná celoplošná fotka není, tak může rovnou nahoru. -->
+  <nav class="pillnav pillnav-nahore" aria-label="Sekce stránky">
+    <div class="wrap">
+      <a href="#uvod">O nás</a>
+      <a href="#kdo-jsme">Kdo jsme</a>
+      <a href="#clenove">Tým</a>
+      <a href="#spoluprace">Spolupráce</a>
+    </div>
+  </nav>
 
   <section class="ah" id="uvod">
     <div class="ah-glow" aria-hidden="true"></div>
@@ -87,16 +99,6 @@
       </ul>
     </div>
   </section>
-
-  <!-- ============ ORIENTAČNÍ LIŠTA (přilepí se pod menu) ============ -->
-  <nav class="pillnav" aria-label="Sekce stránky">
-    <div class="wrap">
-      <a href="#uvod">O nás</a>
-      <a href="#kdo-jsme">Kdo jsme</a>
-      <a href="#clenove">Tým</a>
-      <a href="#spoluprace">Spolupráce</a>
-    </div>
-  </nav>
 
   <section class="section who" id="kdo-jsme">
     <div class="wrap">
@@ -332,6 +334,6 @@
     </div>
   </footer>
 
-  <script src="main.js?v=2026-09-28n" defer></script>
+  <script src="main.js?v=2026-09-28o" defer></script>
 </body>
 </html>

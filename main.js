@@ -537,6 +537,36 @@
       if (e.target === drawer) drawer.close();
     });
     drawer.addEventListener("keydown", function (e) { if (e.key === "ArrowLeft") fill(cur - 1); if (e.key === "ArrowRight") fill(cur + 1); });
+
+    /* ---- Přejetí prstem po textu = další člen ----
+       Nad fotkou si tažení bere karusel (přepíná fotky téhož člena),
+       takže tenhle posluchač visí jen na textové části. Vodorovné
+       přejetí přehodí na dalšího nebo předchozího člena, svislé se
+       nechá být, aby šel text normálně posouvat. Jen pro prst —
+       myší se text vybírá, ne posouvá. */
+    var tX = 0, tY = 0, tSmer = 0;
+    dInner.addEventListener("touchstart", function (e) {
+      if (e.touches.length !== 1) { tSmer = -1; return; }
+      tX = e.touches[0].clientX; tY = e.touches[0].clientY; tSmer = 0;
+    }, { passive: true });
+    dInner.addEventListener("touchmove", function (e) {
+      if (tSmer !== 0 || e.touches.length !== 1) return;
+      var dx = e.touches[0].clientX - tX, dy = e.touches[0].clientY - tY;
+      /* O směru se rozhodne jednou, hned na začátku pohybu, ať se
+         gesto v půlce nepřeklápí. */
+      if (Math.abs(dx) > 12 || Math.abs(dy) > 12) tSmer = Math.abs(dx) > Math.abs(dy) * 1.4 ? 1 : -1;
+    }, { passive: true });
+    dInner.addEventListener("touchend", function (e) {
+      if (tSmer !== 1) { tSmer = 0; return; }
+      tSmer = 0;
+      var dot = e.changedTouches && e.changedTouches[0];
+      if (!dot) return;
+      var dx = dot.clientX - tX;
+      if (Math.abs(dx) < 60) return;
+      fill(dx < 0 ? cur + 1 : cur - 1);
+    }, { passive: true });
+    /* Prohlížeč tak ví, že vodorovné gesto patří stránce, ne posouvání. */
+    dInner.style.touchAction = "pan-y pinch-zoom";
     var h = decodeURIComponent(location.hash.slice(1));
     members.forEach(function (m, k) { if (h && m.id === h) setTimeout(function () { open(k); }, 300); });
   }
