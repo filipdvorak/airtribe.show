@@ -708,16 +708,19 @@ a.who-card:hover .who-more svg { translate: 4px 0; }
 @media (max-width: 900px) {
   .drawer-inner { grid-template-columns: 1fr; align-items: start; }
   /* Galerie jde přes celou šířku nad text, ovládání zůstane pod fotkou.
-     Poměr 4:5 se nemění, takže se ani tady nic neořezává. */
+     Tady se přepne na výřez na šířku (5:4) — rám má stejný poměr, takže
+     se z fotky pořád nic neořízne, ale zabere o dost míň výšky a jméno
+     i text pod ní jsou hned vidět. Verzi vybírá <picture> v medailonku. */
   .drawer-photo { position: relative; width: auto; max-height: none; margin: 0 0 6px; border-radius: 0; }
+  .drawer-photo .m-shot { aspect-ratio: 5 / 4; }
   .drawer-photo .car-viewport, .drawer-photo .m-shot { border-radius: 0; box-shadow: none; }
   /* fotka je nad textem, není co srovnávat na střed */
   .drawer-body { display: block; }
 }
 /* Na tabletu by fotka přes celou šířku zabrala skoro celou obrazovku,
-   tak se zastropuje podle výšky okna — poměr 4:5 zůstává. */
+   tak se zastropuje podle výšky okna — poměr 5:4 zůstává. */
 @media (min-width: 561px) and (max-width: 900px) {
-  .drawer-photo .m-gal { width: min(100%, 40vh); margin-inline: auto; }
+  .drawer-photo .m-gal { width: min(100%, 78vh); margin-inline: auto; }
   .drawer .drawer-top { inset: 14px 14px auto auto; }
   .drawer-body { padding: 22px 22px 26px; }
 }
@@ -754,8 +757,14 @@ a.who-card:hover .who-more svg { translate: 4px 0; }
   .drawer { margin-block: 10px; }
   .drawer[open] { align-content: start; }
   .drawer-panel { max-height: calc(100dvh - 96px); }
-  /* Křížek zůstane po ruce i při posouvání textu. */
-  .drawer .drawer-top { position: sticky; top: 14px; }
+  /* Křížek zůstane po ruce i při posouvání textu. Nesmí ale dostat vlastní
+     řádek mřížky nad fotkou — dělal by nad ní prázdný pruh. Sdílí proto
+     buňku s fotkou, takže fotka začíná rovnou u horní hrany okna. */
+  .drawer-inner { grid-template-areas: "foto" "text"; }
+  .drawer .drawer-top { grid-area: foto; position: sticky; top: 14px; right: auto; left: auto;
+    align-self: start; justify-self: end; width: max-content; margin: 14px 14px 0 0; }
+  .drawer-photo { grid-area: foto; }
+  .drawer-body { grid-area: text; }
   /* Na dotykovém displeji se fotky posouvají tažením, šipky jsou zbytečné.
      Tečky se přesunou na spodní okraj fotky — tím se jméno i text pod ní
      posunou výš a je hned vidět, že medailonek pokračuje dál. */
