@@ -35,6 +35,14 @@
     var bylo = pillBar.classList.contains("docked");
     pillBar.classList.add("bez-prechodu");
     pillBar.classList.remove("docked");
+    /* Stahovat má smysl jen tam, kde se pilulky ve výchozím stavu na jeden
+       řádek nevejdou — jinak by se lišta zmenšovala bez užitku. */
+    var vrch = {}, radku = 0;
+    pillBar.querySelectorAll("a").forEach(function (a) {
+      var y = Math.round(a.getBoundingClientRect().top);
+      if (!vrch[y]) { vrch[y] = 1; radku++; }
+    });
+    pillBar.classList.toggle("stahovat", radku > 1);
     vyskaVolna = pillBar.offsetHeight;
     pillBar.classList.add("docked");
     vyskaListy = pillBar.offsetHeight;
@@ -537,6 +545,28 @@
         dName = drawer.querySelector(".drawer-name"), dVek = drawer.querySelector(".drawer-vek"),
         dBio = drawer.querySelector(".drawer-bio"), dInner = drawer.querySelector(".drawer-body");
     var cur = 0, opener = null;
+    /* Štítek s věkem stojí vpravo na úrovni jména. Když se jméno vejde na
+       jeden řádek, srovná ho na střed už mřížka v CSS. Když se zalomí na
+       dva (nejužší telefony a dlouhá jména), střed celého bloku už není
+       to, co člověk čeká — štítek patří k prvnímu řádku, tak ho tam
+       posuneme. Měří se skutečný řádek, ne dopočítaná výška. */
+    var srovnejVek = function () {
+      if (!dVek || dVek.hidden) return;
+      dVek.style.alignSelf = ""; dVek.style.marginTop = "";
+      var rozsah = document.createRange();
+      rozsah.selectNodeContents(dName);
+      var radky = rozsah.getClientRects();
+      if (radky.length < 2) return;
+      /* Štítek se přisadí k hornímu okraji řádku se jménem a odsadí se
+         přesně o rozdíl půlek — dopočítat to jedním výpočtem jde jen
+         takhle. Kdyby se nechal na středu, posunul by si měřením sám
+         sebe: mřížka totiž střeďuje obě položky navzájem. */
+      var vrchJmena = dName.getBoundingClientRect().top;
+      var stred = radky[0].top + radky[0].height / 2;
+      dVek.style.alignSelf = "start";
+      dVek.style.marginTop = Math.round(stred - dVek.offsetHeight / 2 - vrchJmena) + "px";
+    };
+    window.addEventListener("resize", function () { if (drawer.open) srovnejVek(); });
     var fill = function (k) {
       cur = (k + members.length) % members.length;
       var m = members[cur];
@@ -560,10 +590,23 @@
       dVek.hidden = !vek;
       if (vek) vek.remove();
       prepocitejLeta(dBio); prepocitejLeta(dVek);
+      srovnejVek();
+      /* Na počítači se posouvá text, na telefonu celý panel (a v jedné
+         šířce i samotné okno) — vynulovat je potřeba všechny tři, jinak
+         další člen začne v půlce textu. */
       dInner.scrollTop = 0;
+      var dPanel = drawer.querySelector(".drawer-panel");
+      if (dPanel) dPanel.scrollTop = 0;
+      drawer.scrollTop = 0;
       try { history.replaceState(null, "", "#" + m.id); } catch (e) {}
     };
-    var open = function (k) { opener = members[k]; fill(k); if (!drawer.open) { drawer.showModal(); document.body.classList.add("no-scroll"); } };
+    var open = function (k) {
+      opener = members[k]; fill(k);
+      if (!drawer.open) { drawer.showModal(); document.body.classList.add("no-scroll"); }
+      /* Zavřený <dialog> se nevykresluje, takže uvnitř `fill()` se řádky
+         jména ještě změřit nedají — štítek se srovná až tady. */
+      srovnejVek();
+    };
     drawer.addEventListener("close", function () {
       document.body.classList.remove("no-scroll");
       try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
@@ -587,27 +630,85 @@
        takže tenhle posluchač visí jen na textové části. Vodorovné
        přejetí přehodí na dalšího nebo předchozího člena, svislé se
        nechá být, aby šel text normálně posouvat. Jen pro prst —
-       myší se text vybírá, ne posouvá. */
-    var tX = 0, tY = 0, tSmer = 0;
+       myší se text vybírá, ne posouvá.
+
+       Medailonek se při tažení opravdu posouvá: drží se prstu a po
+       puštění buď doklouže na stranu, kam prst táhl (a z druhé strany
+       přijede další člen), nebo se vrátí na místo. Směr sedí s tím, co
+       prst dělá — tah doleva posune obsah doleva a odkryje dalšího
+       člena, tah doprava předchozího. */
+    var posuv = drawer.querySelector(".drawer-inner") || dInner;
+    var VEN = "transform .17s cubic-bezier(.4, 0, 1, 1), opacity .17s linear";
+    var DOVNITR = "transform .26s cubic-bezier(.2, .7, .2, 1), opacity .26s linear";
+    var ZPET = "transform .22s cubic-bezier(.2, .7, .2, 1), opacity .22s linear";
+
+    function sirkaPosuvu() {
+      return posuv.getBoundingClientRect().width || window.innerWidth || 320;
+    }
+    function polozZa(x, kryti, prechod) {
+      posuv.style.transition = prechod || "none";
+      posuv.style.transform = x ? "translate3d(" + Math.round(x) + "px, 0, 0)" : "";
+      posuv.style.opacity = kryti >= 1 ? "" : String(kryti);
+    }
+    function uklid(za) {
+      setTimeout(function () { posuv.style.transition = ""; posuv.style.willChange = ""; }, za);
+    }
+    /* smer: +1 = další člen (prst šel doleva), -1 = předchozí */
+    function prepni(smer) {
+      if (reduce) { fill(cur + smer); polozZa(0, 1); return; }
+      var krok = sirkaPosuvu() * 0.45;
+      polozZa(-smer * krok, 0, VEN);
+      setTimeout(function () {
+        fill(cur + smer);
+        polozZa(smer * krok, 0, "none");
+        posuv.getBoundingClientRect();          /* vynutí překreslení, než se rozjede cesta zpět */
+        polozZa(0, 1, DOVNITR);
+        uklid(300);
+      }, 170);
+    }
+    function vratZpet() {
+      polozZa(0, 1, reduce ? "none" : ZPET);
+      uklid(260);
+    }
+
+    var tX = 0, tY = 0, tSmer = 0, tCas = 0, tahne = false;
     dInner.addEventListener("touchstart", function (e) {
       if (e.touches.length !== 1) { tSmer = -1; return; }
-      tX = e.touches[0].clientX; tY = e.touches[0].clientY; tSmer = 0;
+      tX = e.touches[0].clientX; tY = e.touches[0].clientY;
+      tSmer = 0; tCas = Date.now(); tahne = false;
+      posuv.style.transition = "none";
+      posuv.style.willChange = "transform, opacity";
     }, { passive: true });
     dInner.addEventListener("touchmove", function (e) {
-      if (tSmer !== 0 || e.touches.length !== 1) return;
+      if (tSmer === -1 || e.touches.length !== 1) return;
       var dx = e.touches[0].clientX - tX, dy = e.touches[0].clientY - tY;
       /* O směru se rozhodne jednou, hned na začátku pohybu, ať se
          gesto v půlce nepřeklápí. */
-      if (Math.abs(dx) > 12 || Math.abs(dy) > 12) tSmer = Math.abs(dx) > Math.abs(dy) * 1.4 ? 1 : -1;
+      if (tSmer === 0 && (Math.abs(dx) > 12 || Math.abs(dy) > 12))
+        tSmer = Math.abs(dx) > Math.abs(dy) * 1.4 ? 1 : -1;
+      if (tSmer !== 1) return;
+      tahne = true;
+      /* Obsah jde s prstem, jen o kousek líněji, a přitom slábne —
+         je vidět, že se něco odsouvá pryč. */
+      polozZa(dx * 0.92, 1 - Math.min(Math.abs(dx) / sirkaPosuvu(), 1) * 0.4);
     }, { passive: true });
     dInner.addEventListener("touchend", function (e) {
-      if (tSmer !== 1) { tSmer = 0; return; }
-      tSmer = 0;
+      var bylTah = tahne, bylSmer = tSmer;
+      tSmer = 0; tahne = false;
+      if (bylSmer !== 1 || !bylTah) { posuv.style.willChange = ""; return; }
       var dot = e.changedTouches && e.changedTouches[0];
-      if (!dot) return;
-      var dx = dot.clientX - tX;
-      if (Math.abs(dx) < 60) return;
-      fill(dx < 0 ? cur + 1 : cur - 1);
+      if (!dot) { vratZpet(); return; }
+      var dx = dot.clientX - tX, sirka = sirkaPosuvu();
+      /* Přehodí se buď po dost dlouhém tažení, nebo po krátkém, ale
+         svižném mrsknutí. */
+      var rychlost = Math.abs(dx) / Math.max(1, Date.now() - tCas);
+      if (Math.abs(dx) >= Math.min(110, Math.max(48, sirka * 0.18)) ||
+          (rychlost > 0.45 && Math.abs(dx) > 24)) prepni(dx < 0 ? 1 : -1);
+      else vratZpet();
+    }, { passive: true });
+    dInner.addEventListener("touchcancel", function () {
+      if (tahne) vratZpet(); else posuv.style.willChange = "";
+      tSmer = 0; tahne = false;
     }, { passive: true });
     /* Prohlížeč tak ví, že vodorovné gesto patří stránce, ne posouvání. */
     dInner.style.touchAction = "pan-y pinch-zoom";

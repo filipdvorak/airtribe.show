@@ -188,18 +188,22 @@ h1, h2, h3, h4 { margin: 0; font-family: var(--head); font-weight: 700; letter-s
   .hero-media .h-uzka { display: block; }
 }
 @media (max-width: 760px) {
-  .hero-media img { object-position: var(--pos-uzky, var(--pos, 50% 35%)); }
-  /* Na úzkém displeji se text odsune níž, aby nad ním zůstal pruh, kde je
-     fotka opravdu vidět, a horní část ztmavení se zjemní. */
-  /* Čím vyšší pás, tím užší je jeho poměr a tím víc se z fotky ubere ze
-     stran — fotky ve složce výška/ se totiž už neořezávají, mají poměr
-     2:3 až 4:5. Odsazení proto drží jen tolik místa, aby nad textem byl
-     vidět pruh fotky; pás tak zůstane v poměru kolem 0,60 a ani z té
-     nejširší fotky (4:5) se neubere víc než čtvrtina šířky. Kontrola je
-     i v gen/hero_fotky.py. */
+  /* Na telefonu se úvodní fotka NEOŘEZÁVÁ. Pás úvodu je vždycky užší než
+     kterákoli fotka ve složce výška/ (mají 2:3 až 4:5), takže `cover` jim
+     ubíral ze stran — z té nejširší skoro čtvrtinu a na stránce vypadala
+     zúžená. `contain` fotku naopak celou vejde do šířky pásu: je vidět
+     přesně to, co je ve složce, a dole zbude kus pozadí, do kterého fotka
+     přechází ztmavením níž. */
+  .hero-media img { height: auto; bottom: auto; object-fit: fill; object-position: 50% 0;
+    /* Fotka končí tam, kde jí vyjde výška — a přesně tam se musí vytratit,
+       aby po ní nezůstala vodorovná hrana. Prolnutí je proto na samotném
+       obrázku, ne na pásu: drží se jeho spodního okraje, ať je fotka 2:3
+       nebo 4:5. */
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 82%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 0%, #000 82%, transparent 100%); }
   .hero { padding-top: calc(var(--nav-h) + 5vh); padding-bottom: 32px; }
   .hero::after { background:
-    linear-gradient(180deg, rgba(10,11,13,.35) 0%, rgba(10,11,13,.1) 16%, rgba(10,11,13,.62) 44%, var(--bg) 100%); }
+    linear-gradient(180deg, rgba(10,11,13,.35) 0%, rgba(10,11,13,.1) 14%, rgba(10,11,13,.55) 40%, rgba(10,11,13,.9) 66%, var(--bg) 88%); }
 }
 .hero::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(10,11,13,.6) 0%, rgba(10,11,13,.25) 35%, rgba(10,11,13,.55) 65%, var(--bg) 100%), linear-gradient(90deg, rgba(10,11,13,.75) 0%, rgba(10,11,13,.1) 70%); }
 .hero h1 { max-width: 16ch; margin: 14px 0 18px; }
@@ -224,10 +228,13 @@ html { scroll-padding-top: var(--odsazeni-scroll, calc(var(--nav-h) + 8px)); }
 .pillnav .wrap::-webkit-scrollbar { display: none; }
 .pillnav a { flex: none; padding: 9px 18px; border-radius: 999px; border: 1px solid var(--line-2); font-size: .9rem; font-weight: 500; color: var(--muted); white-space: nowrap; transition: color .2s, background .2s, border-color .2s, padding .22s var(--ease), font-size .22s var(--ease); }
 /* Po přilepení se lišta stáhne, aby ubírala z výšky obrazovky co nejmíň —
-   ale **jen na mobilu** (do 760 px), kde je výška vzácná. Na počítači
-   zůstává lišta pořád stejná; pravidla jsou v mobilních blocích níž.
-   Kolem textu musí i po stáhnutí zůstat pohodlné místo k hraně pilulky,
-   takže se krátí hlavně svislé mezery — vodorovné jen o dva pixely. */
+   ale **jen tam, kde se pilulky ve výchozím stavu nevejdou na jeden
+   řádek**. To se stává jen na úzkých telefonech; všude jinde (a tedy i na
+   celém počítači) zůstává lišta pořád stejná. Rozhoduje o tom main.js:
+   spočítá řádky a podle toho přidá třídu `stahovat`, na kterou jsou
+   navázaná pravidla v mobilním bloku níž. Kolem textu musí i po stáhnutí
+   zůstat pohodlné místo k hraně pilulky, takže se krátí hlavně svislé
+   mezery a postranní okraj lišty. */
 /* Lišta drží místo v toku stránky, i když se sama stáhne — o co se zkrátí,
    o to se pod ní přidá mezera. Bez toho by se při přilepení všechno pod
    lištou posunulo o těch pár pixelů vzhůru a skoky na sekce by kvůli tomu
@@ -363,12 +370,22 @@ html { scroll-padding-top: var(--odsazeni-scroll, calc(var(--nav-h) + 8px)); }
 .carousel.is-dragging .car-viewport { cursor: grabbing; }
 .gal-slide img { pointer-events: none; }
 .car-track { --n: 4; --gap: 16px; display: flex; gap: var(--gap); will-change: transform; }
+/* V medailonku je v záběru vždycky jen jedna fotka přes celou šířku —
+   mezera mezi snímky by tam při posouvání jen problikla jako pruh pozadí.
+   Fotky proto na sebe navazují bez ní. (Karusely v nabídce ukazují víc
+   snímků vedle sebe, tam mezera smysl má, a proto zůstává.) */
+.m-gal .car-track { --gap: 0px; }
 .car-track.is-anim { transition: transform .6s var(--ease); }
 .car-slide { flex: 0 0 calc((100% - (var(--n) - 1) * var(--gap)) / var(--n)); min-width: 0; }
 .car-arrow { flex: none; }
 .car-dots { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; margin-top: 22px; }
 .car-dots button { width: 8px; height: 8px; padding: 0; border-radius: 999px; border: 0; background: var(--line-2); cursor: pointer; transition: width .35s var(--ease), background .3s; }
 .car-dots button[aria-current="true"] { width: 10px; height: 10px; background-color: var(--accent); background-clip: content-box; }
+/* Ovládání karuselu je tlačítko, ne text. Bez tohohle stačilo dvakrát
+   rychle klepnout na šipku a prohlížeč označil nejbližší slovo v
+   medailonku — vybírat se dá jen samotný text. */
+.icon-btn, .car-ctr, .car-arrow, .car-dots, .car-dots button {
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .icon-btn { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line-2); background: var(--surface); color: var(--text); cursor: pointer; transition: background .25s, border-color .25s, color .25s; }
 .icon-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .icon-btn:hover { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
@@ -475,6 +492,12 @@ html { scroll-padding-top: var(--odsazeni-scroll, calc(var(--nav-h) + 8px)); }
 .drawer-top > * { pointer-events: auto; }
 .drawer-btns { display: flex; gap: 6px; }
 .drawer .icon-btn { background: rgba(10,11,13,.65); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); width: 40px; height: 40px; }
+/* Tlačítka v medailonku mají vlastní tmavé pozadí, které přebíjí i to
+   z běžného `:hover`. Bez tohohle řádku zůstalo pozadí tmavé, ale ikona
+   se podle hoveru obarvila na tmavou — a šipka při najetí myší zmizela.
+   Při najetí se proto rozsvítí celé tlačítko, stejně jako jinde na webu. */
+.drawer .icon-btn:hover { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.drawer .icon-btn:focus-visible { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .drawer-photo { position: relative; }
 .drawer-photo .m-photo { position: absolute; inset: 0; aspect-ratio: auto; }
 .drawer-photo .m-plus { display: none; }
@@ -610,8 +633,14 @@ html { scroll-padding-top: var(--odsazeni-scroll, calc(var(--nav-h) + 8px)); }
   body { font-size: 16px; }
   .pillnav .wrap { justify-content: flex-start; gap: 6px; padding-top: 10px; padding-bottom: 10px; }
   .pillnav a { padding: 7px 15px; font-size: .84rem; }
-  .pillnav.docked .wrap { padding-top: 5px; padding-bottom: 5px; }
-  .pillnav.docked a { padding: 5px 14px; font-size: .8rem; }
+  /* Stahuje se jen lišta, která se ve výchozím stavu nevejde na jeden
+     řádek — třídu `stahovat` dá main.js podle skutečného počtu řádků.
+     Stahuje se pořádně, aby se po přilepení na jeden řádek vešla (od
+     360 px výš; na užších displejích se radši zalomí, než aby byl
+     popisek nečitelný). Kolem textu zůstává 11 px k hraně pilulky,
+     krátí se hlavně svislé mezery a postranní okraj lišty. */
+  .pillnav.stahovat.docked .wrap { padding: 5px 10px; gap: 5px; }
+  .pillnav.stahovat.docked a { padding: 5px 11px; font-size: .7rem; }
   .hero { min-height: 72svh; }
   .hero .btn-row .btn { flex: 1; }
   .hero-audience { gap: 8px 20px; font-size: .88rem; }
@@ -750,8 +779,23 @@ a.who-card:hover .who-more svg { translate: 4px 0; }
 .drawer-body { align-self: stretch; display: flex; flex-direction: column; justify-content: center; justify-content: safe center; }
 .drawer-body { max-height: none; overflow: visible; }
 .drawer-body .drawer-name { font-size: clamp(1.7rem, 3.6vw, 2.15rem); margin: 0; }
-/* Jméno vlevo, věk jako samostatný štítek vpravo na jeho úrovni. */
-.drawer-hlavicka { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
+/* Jméno vlevo, věk jako samostatný štítek vpravo na jeho úrovni.
+   Štítek se srovnává na střed řádku se jménem, ne na účaří: na účaří
+   totiž sedí drobné písmo ve štítku, a celá pilulka pak visí o 5–8 px
+   níž než jméno. Přezdívka je v HTML zabalená se jménem do jednoho
+   <div>; `display: contents` ten obal zruší, takže jméno, štítek i
+   přezdívka jsou tři samostatné položky a dají se srovnat každá zvlášť —
+   jméno se štítkem na jeden řádek, přezdívka přes celou šířku pod ně. */
+.drawer-hlavicka { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 14px; }
+.drawer-hlavicka > div { display: contents; }
+.drawer-hlavicka .drawer-name { grid-area: 1 / 1; }
+.drawer-hlavicka .drawer-vek { grid-area: 1 / 2; }
+.drawer-hlavicka .drawer-nick { grid-area: 2 / 1 / 3 / -1; }
+/* Na nejužších telefonech by se delší jméno vedle štítku zalomilo na dva
+   řádky a štítek by pak visel mezi nimi. Menší jméno se vejde vedle něj. */
+@media (max-width: 370px) {
+  .drawer-body .drawer-name { font-size: 1.45rem; }
+}
 .drawer-vek { flex: none; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line);
   background: var(--surface); color: var(--muted); font-size: .88rem; white-space: nowrap; }
 .drawer-vek[hidden] { display: none; }
@@ -878,17 +922,10 @@ a.who-card:hover .who-more svg { translate: 4px 0; }
 @media (max-width: 760px) {
   .pillnav .wrap { flex-wrap: wrap; justify-content: center; row-gap: 5px; overflow: visible;
     padding-top: 8px; padding-bottom: 8px; }
-  .pillnav.docked .wrap { padding-top: 5px; padding-bottom: 5px; row-gap: 4px; }
   /* Každý ušetřený pixel výšky úvodu zvedá poměr jeho pásu, a tím se
      z úvodních fotek ubere méně ze stran. */
   .hero .lead { margin-bottom: 22px; }
   .hero-audience { margin: 22px 0 0; padding-top: 14px; }
-}
-
-/* Větší telefony na šířku a malé tablety: pilulky jsou tu ještě v plné
-   velikosti, po přilepení se stáhnou stejně jako na telefonu. */
-@media (min-width: 561px) and (max-width: 760px) {
-  .pillnav.docked a { padding: 6px 16px; font-size: .85rem; }
 }
 
 /* Dotykové ovládání: větší plochy pro prst */
