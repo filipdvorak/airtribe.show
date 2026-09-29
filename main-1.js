@@ -28,22 +28,18 @@
      mezera. Měří se nasucho: stav „přilepeno" se zapne bez animace,
      změří a hned vrátí. Výsledek závisí jen na šířce okna, takže se
      přepočítává při změně velikosti, ne při každém scrollu. */
-  var vyskaListy = 0, vyskaVolna = 0;
+  var vyskaListy = 0;
   function zmerListu() {
-    vyskaListy = vyskaVolna = 0;
+    vyskaListy = 0;
     if (!pillBar || getComputedStyle(pillBar).position !== "sticky") return 0;
     var bylo = pillBar.classList.contains("docked");
-    pillBar.classList.add("bez-prechodu");
-    pillBar.classList.remove("docked");
-    vyskaVolna = pillBar.offsetHeight;
-    pillBar.classList.add("docked");
+    if (!bylo) pillBar.classList.add("bez-prechodu", "docked");
     vyskaListy = pillBar.offsetHeight;
-    if (!bylo) pillBar.classList.remove("docked");
-    /* O co se lišta po přilepení zkrátí, o to si pod sebou nechá mezeru,
-       ať se obsah pod ní ani o pixel neposune. */
-    pillBar.style.setProperty("--dock-rezerva", Math.max(0, vyskaVolna - vyskaListy) + "px");
-    void pillBar.offsetHeight;
-    pillBar.classList.remove("bez-prechodu");
+    if (!bylo) {
+      pillBar.classList.remove("docked");
+      void pillBar.offsetHeight;
+      pillBar.classList.remove("bez-prechodu");
+    }
     return vyskaListy;
   }
 

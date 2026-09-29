@@ -223,20 +223,13 @@ html { scroll-padding-top: var(--odsazeni-scroll, calc(var(--nav-h) + 8px)); }
 .pillnav .wrap { display: flex; justify-content: center; gap: 8px; padding-top: 12px; padding-bottom: 12px; overflow-x: auto; scrollbar-width: none; transition: padding .22s var(--ease); }
 .pillnav .wrap::-webkit-scrollbar { display: none; }
 .pillnav a { flex: none; padding: 9px 18px; border-radius: 999px; border: 1px solid var(--line-2); font-size: .9rem; font-weight: 500; color: var(--muted); white-space: nowrap; transition: color .2s, background .2s, border-color .2s, padding .22s var(--ease), font-size .22s var(--ease); }
-/* Po přilepení se lišta stáhne, aby ubírala z výšky obrazovky co nejmíň —
-   ale **jen na mobilu** (do 760 px), kde je výška vzácná. Na počítači
-   zůstává lišta pořád stejná; pravidla jsou v mobilních blocích níž.
-   Kolem textu musí i po stáhnutí zůstat pohodlné místo k hraně pilulky,
-   takže se krátí hlavně svislé mezery — vodorovné jen o dva pixely. */
-/* Lišta drží místo v toku stránky, i když se sama stáhne — o co se zkrátí,
-   o to se pod ní přidá mezera. Bez toho by se při přilepení všechno pod
-   lištou posunulo o těch pár pixelů vzhůru a skoky na sekce by kvůli tomu
-   dosedaly nepřesně. Hodnotu dopočítá main.js podle skutečných výšek. */
-.pillnav.docked { margin-bottom: var(--dock-rezerva, 0px); }
-.pillnav { transition: margin-bottom .22s var(--ease); }
+/* Po přilepení se lišta stáhne, aby ubírala z výšky obrazovky co nejmíň.
+   Kolem textu ale musí zůstat pohodlné místo k hraně pilulky, takže se
+   krátí hlavně svislé mezery — vodorovné jen o dva pixely. */
+.pillnav.docked .wrap { padding-top: 6px; padding-bottom: 6px; }
+.pillnav.docked a { padding: 6px 16px; font-size: .85rem; }
 /* Při měření výšky lišty se stav „přilepeno" zapne naráz, bez animace. */
 .pillnav.bez-prechodu, .pillnav.bez-prechodu .wrap, .pillnav.bez-prechodu a { transition: none !important; }
-.pillnav.bez-prechodu { margin-bottom: 0 !important; }
 .pillnav a:hover { color: var(--text); border-color: rgba(255,255,255,.35); }
 .pillnav a.is-active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 
@@ -879,16 +872,6 @@ a.who-card:hover .who-more svg { translate: 4px 0; }
   .pillnav .wrap { flex-wrap: wrap; justify-content: center; row-gap: 5px; overflow: visible;
     padding-top: 8px; padding-bottom: 8px; }
   .pillnav.docked .wrap { padding-top: 5px; padding-bottom: 5px; row-gap: 4px; }
-  /* Každý ušetřený pixel výšky úvodu zvedá poměr jeho pásu, a tím se
-     z úvodních fotek ubere méně ze stran. */
-  .hero .lead { margin-bottom: 22px; }
-  .hero-audience { margin: 22px 0 0; padding-top: 14px; }
-}
-
-/* Větší telefony na šířku a malé tablety: pilulky jsou tu ještě v plné
-   velikosti, po přilepení se stáhnou stejně jako na telefonu. */
-@media (min-width: 561px) and (max-width: 760px) {
-  .pillnav.docked a { padding: 6px 16px; font-size: .85rem; }
 }
 
 /* Dotykové ovládání: větší plochy pro prst */
