@@ -997,7 +997,18 @@ a.who-card:hover .who-more svg { translate: 4px 0; }
   .pkg-specs { grid-template-columns: 1fr; }
   .ps.is-tall { grid-row: auto; }
   .ps { padding: 0; gap: 0; }
-  .ps-btn { padding: 15px 16px; cursor: pointer; font-size: .78rem; }
+  .ps-btn { padding: 12px 14px; gap: 12px; cursor: pointer; font-size: .78rem; }
+  /* Z nové podoby na počítači si mobil bere kroužky s ikonou — vzhled
+     drží pohromadě a navíc je hned vidět, která položka je rozkrytá
+     (kroužek se u ní rozsvítí). Rozbalování ani rozměry řádku se jinak
+     nemění, text pod popiskem zůstává přes celou šířku kvůli čitelnosti. */
+  .ps-btn > svg:first-child { width: 30px; height: 30px; padding: 7px; border-radius: 50%;
+    border: 1px solid var(--line-2); background: var(--bg-2); color: var(--accent); overflow: visible;
+    transition: background .25s var(--ease), color .25s var(--ease), border-color .25s var(--ease); }
+  .ps-btn[aria-expanded="true"] > svg:first-child { background: var(--accent);
+    color: var(--accent-ink); border-color: var(--accent); }
+  /* Pilulka s cenou nese stejný barevný nádech jako pruh na počítači. */
+  .pkg-price { background: linear-gradient(90deg, var(--accent-soft), rgba(0, 0, 0, 0) 72%), var(--surface); }
   .ps-chev { display: block; }
   .ps-btn[aria-expanded="true"] .ps-chev { transform: rotate(180deg); }
   .ps-body { max-height: 0; opacity: 0; overflow: hidden; padding: 0 16px; transition: max-height .45s cubic-bezier(.4, 0, .2, 1), opacity .35s ease, padding-bottom .35s ease; }
@@ -1024,13 +1035,11 @@ a.who-card:hover .who-more svg { translate: 4px 0; }
 /* Vedle sebe (dva sloupce) mají obě poloviny nabídky sedět hranami.
    Výšku udává fotka — zůstává čtvercová, jinak by u položky s kratší
    tabulkou vyšel z rámu placatý pruh a ze čtvercových fotek by zmizela
-   třetina. Tabulka údajů se k fotce dotáhne (`.pkg-specs` má flex: 1),
-   takže její spodní hrana sedne na spodní hranu fotky, a pruh s ovládáním
-   karuselu je stejně vysoký jako pilulka s cenou: 62 px = tlačítko 40
-   + 2× 10 odsazení + 2× 1 rámeček. */
+   třetina. Sloupec s údaji se k fotce dotáhne (`.pkg-specs` má flex: 1),
+   takže jeho spodní hrana sedne na spodní hranu fotky. Ovládání karuselu
+   už pod fotkou nestojí — leží na ní, viz blok na konci souboru. */
 @media (min-width: 1161px) {
   .pkg-gal { align-self: start; }
-  .pkg-gal .car-ctr { height: 62px; margin-top: 10px; }
 }
 .car-compact .car-stage { display: block; }
 .car-compact .car-viewport { border-radius: var(--radius); box-shadow: var(--shadow); }
@@ -1157,3 +1166,96 @@ a.logo-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 6p
 .soc-link[data-soc="tiktok"]:hover    { color: #fff; border-color: #fe2c55; background: #fe2c55; }
 .soc-link[data-soc="strava"]:hover    { color: #fff; border-color: #fc4c02; background: #fc4c02; }
 .soc-link[data-soc="web"]:hover       { color: var(--accent-ink); border-color: var(--accent); background: var(--accent); }
+
+/* =========================================================
+   Nabídka — ovládání karuselu leží na fotce
+   Stejně jako v medailonku patří šipky i tečky k fotce, ne pod ni:
+   šipky po stranách, tečky dole uprostřed. Pod nimi je jemné ztmavení,
+   aby byly čitelné i na světlém snímku. Na dotykovém displeji se šipky
+   samy schovají (pravidlo v bloku `pointer: coarse`) a zůstanou tečky.
+   ========================================================= */
+.pkg-gal { position: relative; }
+.pkg-gal .car-viewport { position: relative; }
+.pkg-gal .car-viewport::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 96px;
+  background: linear-gradient(180deg, rgba(10, 11, 13, 0), rgba(10, 11, 13, .6)); pointer-events: none; z-index: 1; }
+.pkg-gal .car-ctr { position: absolute; inset: 0; display: block; margin: 0; height: auto;
+  pointer-events: none; z-index: 2; }
+.pkg-gal .car-arrow { position: absolute; top: 50%; translate: 0 -50%; pointer-events: auto;
+  background: rgba(10, 11, 13, .62); border-color: rgba(255, 255, 255, .16);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.pkg-gal .car-arrow:hover, .pkg-gal .car-arrow:focus-visible {
+  background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.pkg-gal [data-prev] { left: 12px; }
+.pkg-gal [data-next] { right: 12px; }
+.pkg-gal .car-dots { position: absolute; left: 0; right: 0; bottom: 12px; margin: 0;
+  justify-content: center; pointer-events: auto; }
+.pkg-gal .car-dots button { background-color: rgba(242, 243, 245, .45); }
+.pkg-gal .car-dots button[aria-current="true"] { background-color: var(--accent); }
+
+/* =========================================================
+   Nabídka na počítači — údaje jako osa s kroužky
+   Místo tabulky o dvou sloupcích stojí údaje pod sebou na svislé ose:
+   u každého kroužek s ikonou, vedle něj název a pod ním text. Osa vede
+   za kroužky a shora dolů slábne, takže oko jde přirozeně od programu
+   až k ceně. Řádky se rozprostřou po výšce fotky, aby spodní hrany
+   obou sloupců seděly — na tom Filip trvá.
+   ========================================================= */
+@media (min-width: 1161px) {
+  .pkg-body { gap: 34px; align-items: stretch; }
+  .pkg-col { gap: 0; }
+  /* Rám fotky se natáhne na výšku sloupce s údaji, takže spodní hrany
+     sedí u každé položky samy od sebe — i u té s nejdelšími texty. Uvnitř
+     rámu fotka dál vyplňuje plochu (`cover`) a co v ní zůstane, určuje
+     `--vyrez` u každého snímku. */
+  .pkg-gal { align-self: stretch; display: flex; flex-direction: column; }
+  .pkg-gal .car-stage { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
+    align-items: stretch; gap: 0; }
+  .pkg-gal .car-viewport { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
+    align-items: stretch; }
+  .pkg-gal .car-track { flex: 1 1 auto; min-height: 0; width: 100%; align-items: stretch; }
+  .pkg-gal .car-slide { display: flex; }
+  .pkg-gal .pkg-shot { flex: 1 1 auto; min-height: 0; aspect-ratio: auto; }
+  .pkg-specs { position: relative; display: flex; flex-direction: column; justify-content: space-between;
+    flex: 1 1 auto; gap: 0; padding: 0 0 14px; margin: 0;
+    background: none; border: 0; border-radius: 0; overflow: visible; }
+  /* Osa spojuje kroužky: každý údaj si nese úsek od svého kroužku k tomu
+     dalšímu, poslední už žádný — čára tak přesně končí u posledního
+     kroužku a nepokračuje do prázdna nad cenou. Je celá v barvě položky,
+     přechod do ztracena se neosvědčil. Úseky naskakují spolu s řádky. */
+  .ps:not(:last-child)::before { content: ""; position: absolute; left: 16px; top: 36px; bottom: -2px;
+    width: 2px; border-radius: 2px; background: var(--accent); opacity: .65; }
+  .ps { position: relative; display: block; background: none; padding: 0; min-width: 0; }
+  .ps + .ps { margin-top: 2px; }
+  .ps dt { margin: 0; }
+  .ps-btn { gap: 14px; align-items: center; font-size: .76rem; letter-spacing: .09em; }
+  .ps-btn > svg:first-child { width: 34px; height: 34px; padding: 8px; border-radius: 50%;
+    border: 1px solid var(--line-2); background: var(--bg-2); color: var(--accent); overflow: visible;
+    transition: background .25s var(--ease), color .25s var(--ease), border-color .25s var(--ease); }
+  .ps dd { margin: 4px 0 0 48px; font-size: .86rem; line-height: 1.45; color: var(--muted); }
+  /* Najetí myší zvýrazní právě čtený údaj. */
+  .ps:hover .ps-btn > svg:first-child { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .ps:hover dd { color: var(--text); }
+  .ps .variants { margin-top: 6px; }
+
+  /* Cena uzavírá sloupec jako pruh, ne pilulka — drží hranu s fotkou. */
+  .pkg-price { border-radius: var(--radius); padding: 12px 12px 12px 20px;
+    background: linear-gradient(90deg, var(--accent-soft), rgba(0, 0, 0, 0) 68%), var(--surface); }
+  .pkg-price .price small { color: var(--dim); }
+  .pkg-price .price b { font-size: 1.28rem; letter-spacing: -.01em; }
+  .pkg-price .btn { height: 42px; padding: 0 20px; font-size: .9rem; }
+
+  /* Řádky naskakují jeden po druhém — decentně, jen jednou. */
+  .pkg-col[data-reveal] .ps { opacity: 0; transform: translateY(10px);
+    transition: opacity .55s var(--ease), transform .55s var(--ease); }
+  .pkg-col[data-reveal].is-in .ps { opacity: 1; transform: none; }
+  .pkg-col[data-reveal].is-in .ps:nth-child(1) { transition-delay: .06s; }
+  .pkg-col[data-reveal].is-in .ps:nth-child(2) { transition-delay: .12s; }
+  .pkg-col[data-reveal].is-in .ps:nth-child(3) { transition-delay: .18s; }
+  .pkg-col[data-reveal].is-in .ps:nth-child(4) { transition-delay: .24s; }
+  .pkg-col[data-reveal].is-in .ps:nth-child(5) { transition-delay: .30s; }
+  .pkg-col[data-reveal].is-in .ps:nth-child(6) { transition-delay: .36s; }
+  .no-js .pkg-col[data-reveal] .ps { opacity: 1; transform: none; }
+}
+@media (min-width: 1161px) and (prefers-reduced-motion: reduce) {
+  .pkg-col[data-reveal] .ps { opacity: 1; transform: none; transition: none; }
+}
