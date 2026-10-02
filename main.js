@@ -65,6 +65,10 @@
   window.addEventListener("resize", function () { zmerListu(); odsazeniSkoku(); });
   window.addEventListener("load", function () { zmerListu(); odsazeniSkoku(); });
 
+  /* Doplní ho blok s orientační lištou níž; do té doby nedělá nic. */
+  var prekresliSpy = function () {};
+  var byloDocked = null;
+
   function onScroll() {
     var y = window.scrollY;
     var solid = y > 24;
@@ -74,6 +78,10 @@
       var top = parseFloat(getComputedStyle(pillBar).top) || 0;
       var docked = pillBar.getBoundingClientRect().top <= top + 1.5;
       pillBar.classList.toggle("docked", docked);
+      /* Přilepení mění geometrii pod lištou. Kdo se o zvýraznění stará,
+         musí přeměřit znovu — jinak zůstane viset stav z okamžiku,
+         kdy lišta ještě nebyla stažená, a po doskoku nesvítí nic. */
+      if (docked !== byloDocked) { byloDocked = docked; prekresliSpy(); }
       /* Rozostřená vrstva má rovnou sedět na stáhnuté výšce lišty, ať
          během těch dvou desetin sekundy nepodbíhá. */
       if (docked) bottom = Math.max(bottom, top + (vyskaListy || pillBar.offsetHeight));
@@ -103,7 +111,15 @@
     window.addEventListener("resize", function () { if (window.innerWidth > 820) setMenu(false); });
   }
 
-  /* ---- Odkazy na #nabidka na stejné stránce: plynulý posun ---- */
+  /* ---- Odkazy na kotvy na stejné stránce: plynulý posun ----
+     Cíl se počítá ručně, ne přes scrollIntoView, ať se dá výsledek
+     zastropovat koncem stránky a ať je vidět, z čeho vychází. */
+  function cilSkoku(t) {
+    var okraj = parseFloat(getComputedStyle(t).scrollMarginTop) || 0;
+    var y = t.getBoundingClientRect().top + window.scrollY - okraj - odsazeniSkoku();
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    return Math.max(0, Math.min(max, Math.round(y)));
+  }
   document.querySelectorAll('a[href*="#"]').forEach(function (a) {
     a.addEventListener("click", function (e) {
       var url = new URL(a.href, location.href);
@@ -112,7 +128,11 @@
       if (!t) return;
       e.preventDefault();
       setMenu(false);
-      t.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+      window.scrollTo({ top: cilSkoku(t), behavior: reduce ? "auto" : "smooth" });
+      /* Pojistka pro případ, že poslední událost scroll přišla dřív, než se
+         lišta stáhla: po doklouzání se zvýraznění přepočítá ještě jednou. */
+      setTimeout(prekresliSpy, 420);
+      setTimeout(prekresliSpy, 1000);
       try { history.replaceState(null, "", url.hash); } catch (err) {}
     });
   });
@@ -121,13 +141,22 @@
   var pills = Array.prototype.slice.call(document.querySelectorAll(".pillnav a"));
   if (pills.length) {
     var targets = pills.map(function (p) { return document.querySelector(p.getAttribute("href")); });
+    /* Cíl, který si pro skok přidává vlastní vzduch (scroll-margin-top),
+       dosedne o ten kus níž — bez něj by pilulka po doskoku nezůstala
+       zvýrazněná, protože sekce hranici nikdy nepřekročila. */
+    var okraje = [];
+    function zmerOkraje() {
+      okraje = targets.map(function (t) { return t ? parseFloat(getComputedStyle(t).scrollMarginTop) || 0 : 0; });
+    }
+    zmerOkraje();
+    window.addEventListener("resize", zmerOkraje);
     var spyTick = false, lastActive = null;
     var spy = function () {
       spyTick = false;
       /* Stejná hranice, na jakou skáče kliknutí — sekce se zvýrazní
          přesně v okamžiku, kdy dosedne pod lišty (pár pixelů rezervy). */
       var line = odsazeniSkoku() + 6, cur = -1;
-      targets.forEach(function (t, k) { if (t && t.getBoundingClientRect().top <= line) cur = k; });
+      targets.forEach(function (t, k) { if (t && t.getBoundingClientRect().top - okraje[k] <= line) cur = k; });
       if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) cur = targets.length - 1;
       pills.forEach(function (p, k) { p.classList.toggle("is-active", k === cur); });
       var act = pills[cur];
@@ -139,6 +168,8 @@
     };
     window.addEventListener("scroll", function () { if (!spyTick) { spyTick = true; requestAnimationFrame(spy); } }, { passive: true });
     window.addEventListener("resize", spy);
+    if ("onscrollend" in window) window.addEventListener("scrollend", spy);
+    prekresliSpy = function () { requestAnimationFrame(spy); };
     spy();
   }
 
@@ -423,7 +454,14 @@
      v prohlížeči — takže naroste i na stránce, která se mezitím
      negenerovala. Nový údaj stačí označit stejnou třídou, nic dalšího.
      Místo roku může být i přesné datum „2003-02-28“ — pak číslo naroste
-     až v den výročí, ne už 1. ledna. Tak jsou zapsané věky členů. */
+     až v den výročí, ne už 1. ledna. Tak jsou zapsané věky členů.
+     Uvnitř značky je i slovo, protože čeština ho skloňuje: 1 rok,
+     2–4 roky, 5 a víc let. Stejné pravidlo má `tvar_let()` v generátoru. */
+  function tvarLet(n) {
+    if (n === 1) return "1 rok";
+    if (n >= 2 && n <= 4) return n + " roky";
+    return n + " let";
+  }
   function prepocitejLeta(koren) {
   Array.prototype.slice.call((koren || document).querySelectorAll(".pocet-let[data-od]")).forEach(function (el) {
     var od = el.getAttribute("data-od") || "";
@@ -435,7 +473,7 @@
       var letos = dnes.getMonth() + 1 < mesic || (dnes.getMonth() + 1 === mesic && dnes.getDate() < den);
       if (letos) pocet -= 1;        /* výročí letos ještě nebylo */
     }
-    if (pocet >= 0) el.textContent = pocet;
+    if (pocet >= 0) el.textContent = tvarLet(pocet);
   });
   }
   prepocitejLeta(document);
