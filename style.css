@@ -249,9 +249,9 @@ html { scroll-padding-top: var(--odsazeni-scroll, calc(var(--nav-h) + 8px)); }
 .pillnav.docked { background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; }
 /* Lišta na O nás leží mezi úvodní sekcí a „Kdo jsme" a přilepuje se
    stejně jako na domovské stránce. */
-.pillnav .wrap { display: flex; justify-content: center; gap: 8px; padding-top: 12px; padding-bottom: 12px; overflow-x: auto; scrollbar-width: none; transition: padding .22s var(--ease); }
+.pillnav .wrap { display: flex; justify-content: center; gap: 8px; padding-top: 12px; padding-bottom: 12px; overflow-x: auto; scrollbar-width: none; }
 .pillnav .wrap::-webkit-scrollbar { display: none; }
-.pillnav a { flex: none; padding: 9px 18px; border-radius: 999px; border: 1px solid var(--line-2); font-size: .9rem; font-weight: 500; color: var(--muted); white-space: nowrap; transition: color .2s, background .2s, border-color .2s, padding .22s var(--ease), font-size .22s var(--ease); }
+.pillnav a { flex: none; padding: 9px 18px; border-radius: 999px; border: 1px solid var(--line-2); font-size: .9rem; font-weight: 500; color: var(--muted); white-space: nowrap; transition: color .2s, background .2s, border-color .2s; }
 /* Po přilepení se lišta stáhne, aby ubírala z výšky obrazovky co nejmíň —
    ale **jen tam, kde se pilulky ve výchozím stavu nevejdou na jeden
    řádek**. To se stává jen na úzkých telefonech; všude jinde (a tedy i na
@@ -264,8 +264,18 @@ html { scroll-padding-top: var(--odsazeni-scroll, calc(var(--nav-h) + 8px)); }
    o to se pod ní přidá mezera. Bez toho by se při přilepení všechno pod
    lištou posunulo o těch pár pixelů vzhůru a skoky na sekce by kvůli tomu
    dosedaly nepřesně. Hodnotu dopočítá main.js podle skutečných výšek. */
+/* Stažení lišty se odehraje v jediném snímku: rozměry pilulek ani
+   rezerva pod lištou se neanimují. Kdyby se animovaly, musely by si po
+   celou dobu přesně odpovídat — a protože se pilulky uprostřed přechodu
+   přeskládají ze dvou řádků na jeden, odpovídat si nemohou a obsah pod
+   lištou se v tu chvíli houpal o 30 px. Takhle je součet výšky lišty
+   a rezervy pořád stejný a stránka se nehne.
+   Aby přepnutí nepůsobilo tvrdě, jen se pilulky krátce prolnou —
+   krytí na rozvržení nesahá, takže nic neposouvá. */
 .pillnav.docked { margin-bottom: var(--dock-rezerva, 0px); }
-.pillnav { transition: margin-bottom .22s var(--ease); }
+.pillnav.stahovat.docked .wrap { animation: pill-stah .24s var(--ease); }
+@keyframes pill-stah { from { opacity: .55; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .pillnav.stahovat.docked .wrap { animation: none; } }
 /* Při měření výšky lišty se stav „přilepeno" zapne naráz, bez animace. */
 .pillnav.bez-prechodu, .pillnav.bez-prechodu .wrap, .pillnav.bez-prechodu a { transition: none !important; }
 .pillnav.bez-prechodu { margin-bottom: 0 !important; }
@@ -761,6 +771,14 @@ html { scroll-padding-top: var(--odsazeni-scroll, calc(var(--nav-h) + 8px)); }
 .ah-facts li:hover { border-color: color-mix(in srgb, var(--accent) 40%, transparent); background: var(--surface-2); }
 .ah-ic { grid-row: span 2; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 10px; background: var(--accent-soft); color: var(--accent); }
 .ah-ic svg { width: 20px; height: 20px; }
+/* Licence ČAPK nese místo ikony skutečný znak asociace. Znak má kromě
+   modré a červené i bílý prstenec, takže patří na TMAVÝ podklad — na
+   světlém by prstenec zmizel. Dlaždice je proto neutrálně tmavá, aby
+   barvy znaku nic nebarvilo; rám, velikost i poloměr rohů zůstávají
+   stejné jako u ostatních ikon, aby řada držela pohromadě. */
+.ah-ic.je-logo { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line-2); padding: 5px; }
+.ah-ic.je-logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.ah-facts li:hover .ah-ic.je-logo { background: #20252b; }
 .ah-facts b { font-family: var(--head); font-weight: 700; font-size: 1rem; line-height: 1.25; }
 .ah-facts li > span:last-child { font-size: .82rem; color: var(--muted); line-height: 1.3; }
 
