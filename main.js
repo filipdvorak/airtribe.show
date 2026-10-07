@@ -675,43 +675,51 @@
        nechá být, aby šel text normálně posouvat. Jen pro prst —
        myší se text vybírá, ne posouvá.
 
-       Medailonek se při tažení opravdu posouvá: drží se prstu a po
-       puštění buď doklouže na stranu, kam prst táhl (a z druhé strany
-       přijede další člen), nebo se vrátí na místo. Směr sedí s tím, co
+       Medailonek se při tažení opravdu posouvá: drží se prstu přesně,
+       a po puštění buď doklouže na stranu, kam prst táhl (a z druhé
+       strany přijede další člen), nebo se vrátí na místo. Směr sedí s tím, co
        prst dělá — tah doleva posune obsah doleva a odkryje dalšího
        člena, tah doprava předchozího. */
     var posuv = drawer.querySelector(".drawer-inner") || dInner;
-    var VEN = "transform .17s cubic-bezier(.4, 0, 1, 1), opacity .17s linear";
-    var DOVNITR = "transform .26s cubic-bezier(.2, .7, .2, 1), opacity .26s linear";
-    var ZPET = "transform .22s cubic-bezier(.2, .7, .2, 1), opacity .22s linear";
+    /* Dojezd po puštění prstu a příjezd dalšího člena. Obojí má stejné
+       doběhové tempo, takže pohyb působí jako jedno gesto, ne jako dvě
+       animace za sebou. Průhlednost se nemění vůbec — medailonek jen
+       odjede ze strany a z druhé přijede další. */
+    var DOVNITR = "transform .32s cubic-bezier(.16, 1, .3, 1)";
+    var ZPET = "transform .3s cubic-bezier(.16, 1, .3, 1)";
 
     function sirkaPosuvu() {
       return posuv.getBoundingClientRect().width || window.innerWidth || 320;
     }
-    function polozZa(x, kryti, prechod) {
+    function polozZa(x, prechod) {
       posuv.style.transition = prechod || "none";
       posuv.style.transform = x ? "translate3d(" + Math.round(x) + "px, 0, 0)" : "";
-      posuv.style.opacity = kryti >= 1 ? "" : String(kryti);
     }
     function uklid(za) {
       setTimeout(function () { posuv.style.transition = ""; posuv.style.willChange = ""; }, za);
     }
-    /* smer: +1 = další člen (prst šel doleva), -1 = předchozí */
-    function prepni(smer) {
-      if (reduce) { fill(cur + smer); polozZa(0, 1); return; }
-      var krok = sirkaPosuvu() * 0.45;
-      polozZa(-smer * krok, 0, VEN);
+    /* smer: +1 = další člen (prst šel doleva), -1 = předchozí.
+       `odkud` je místo, kde prst skončil, `rychlost` jeho tempo v px/ms —
+       z toho se spočítá doba dojezdu, aby obsah plynule pokračoval tam,
+       kam ho prst poslal, místo aby se zasekl a rozjel znovu. */
+    function prepni(smer, odkud, rychlost) {
+      if (reduce) { fill(cur + smer); polozZa(0); return; }
+      var sirka = sirkaPosuvu();
+      var cil = -smer * sirka;
+      var zbyva = Math.abs(cil - (odkud || 0));
+      var doba = Math.max(130, Math.min(300, zbyva / Math.max(rychlost || 0, 0.9)));
+      polozZa(cil, "transform " + Math.round(doba) + "ms cubic-bezier(.25, .6, .35, 1)");
       setTimeout(function () {
         fill(cur + smer);
-        polozZa(smer * krok, 0, "none");
+        polozZa(smer * sirka, "none");
         posuv.getBoundingClientRect();          /* vynutí překreslení, než se rozjede cesta zpět */
-        polozZa(0, 1, DOVNITR);
-        uklid(300);
-      }, 170);
+        polozZa(0, DOVNITR);
+        uklid(360);
+      }, doba);
     }
     function vratZpet() {
-      polozZa(0, 1, reduce ? "none" : ZPET);
-      uklid(260);
+      polozZa(0, reduce ? "none" : ZPET);
+      uklid(340);
     }
 
     var tX = 0, tY = 0, tSmer = 0, tCas = 0, tahne = false;
@@ -720,7 +728,7 @@
       tX = e.touches[0].clientX; tY = e.touches[0].clientY;
       tSmer = 0; tCas = Date.now(); tahne = false;
       posuv.style.transition = "none";
-      posuv.style.willChange = "transform, opacity";
+      posuv.style.willChange = "transform";
     }, { passive: true });
     dInner.addEventListener("touchmove", function (e) {
       if (tSmer === -1 || e.touches.length !== 1) return;
@@ -731,9 +739,8 @@
         tSmer = Math.abs(dx) > Math.abs(dy) * 1.4 ? 1 : -1;
       if (tSmer !== 1) return;
       tahne = true;
-      /* Obsah jde s prstem, jen o kousek líněji, a přitom slábne —
-         je vidět, že se něco odsouvá pryč. */
-      polozZa(dx * 0.92, 1 - Math.min(Math.abs(dx) / sirkaPosuvu(), 1) * 0.4);
+      /* Obsah jde přesně s prstem — žádné zpomalení ani stmívání. */
+      polozZa(dx);
     }, { passive: true });
     dInner.addEventListener("touchend", function (e) {
       var bylTah = tahne, bylSmer = tSmer;
@@ -746,7 +753,7 @@
          svižném mrsknutí. */
       var rychlost = Math.abs(dx) / Math.max(1, Date.now() - tCas);
       if (Math.abs(dx) >= Math.min(110, Math.max(48, sirka * 0.18)) ||
-          (rychlost > 0.45 && Math.abs(dx) > 24)) prepni(dx < 0 ? 1 : -1);
+          (rychlost > 0.45 && Math.abs(dx) > 24)) prepni(dx < 0 ? 1 : -1, dx, rychlost);
       else vratZpet();
     }, { passive: true });
     dInner.addEventListener("touchcancel", function () {

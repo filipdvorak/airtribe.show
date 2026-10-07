@@ -308,7 +308,11 @@ html { scroll-padding-top: var(--odsazeni-scroll, calc(var(--nav-h) + 8px)); }
 .offer.is-flipped .offer-intro { order: 1; }
 .offer-body .eyebrow { margin-bottom: 10px; }
 .tags { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
-.tags li { font-size: .86rem; color: var(--text); background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; }
+/* Poloměr 17 px: u jednořádkového štítku je to pořád pilulka (zaoblení se
+   ořízne na polovinu výšky), ale u štítku přes dva řádky už nevznikne
+   stadion, ve kterém se text mačká do oblouků. Proto i širší odsazení. */
+.tags li { font-size: .86rem; color: var(--text); background: var(--surface-2); border: 1px solid var(--line); border-radius: 19px; padding: 6px 14px; }
+.tags li:not(:only-child) { max-width: 100%; }
 /* Přehled tří formátů nahoře v nabídce */
 .offer-overview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: var(--mezera-blok); }
 .ov { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto 1fr auto; column-gap: 14px; row-gap: 4px; padding: 20px 22px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); transition: border-color .25s, background .25s, transform .3s var(--ease); }
