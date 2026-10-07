@@ -531,12 +531,15 @@
       return (prvni ? [prvni] : []).concat(Array.prototype.slice.call(dalsi));
     };
 
-    var dotahni = function (fotky) {
-      fotky.forEach(function (o) {
-        if (!o.hasAttribute("data-src")) return;
-        if (o.hasAttribute("data-srcset")) { o.srcset = o.getAttribute("data-srcset"); o.removeAttribute("data-srcset"); }
-        o.src = o.getAttribute("data-src"); o.removeAttribute("data-src");
-      });
+    /* Stahuje se vždy jen fotka, která je na řadě. Dřív se po načtení
+       stránky dotáhla celá sada naráz — na počítači to bylo osm fotek,
+       skoro 4 MB, které návštěvník z větší části nikdy neuvidí. Teď se
+       vždy předem připraví jen ta následující; má na stažení celou
+       pauzu mezi prolnutími (6,5 s), takže střídání vypadá stejně. */
+    var dotahniJednu = function (o) {
+      if (!o || !o.hasAttribute("data-src")) return;
+      if (o.hasAttribute("data-srcset")) { o.srcset = o.getAttribute("data-srcset"); o.removeAttribute("data-srcset"); }
+      o.src = o.getAttribute("data-src"); o.removeAttribute("data-src");
     };
 
     /* Rozjede střídání nad tou sadou, která je zrovna vidět. Volá se
@@ -546,7 +549,8 @@
       if (strida) { clearTimeout(strida); strida = null; }
       var fotky = heroSada();
       if (!fotky.length) return;
-      dotahni(fotky);
+      dotahniJednu(fotky[0]);
+      dotahniJednu(fotky[1]);
       uvodniFotky.querySelectorAll("img").forEach(function (o) {
         o.classList.remove("is-on"); o.classList.remove("se-priblizuje");
       });
@@ -561,6 +565,7 @@
           i = (i + 1) % fotky.length;
           fotky[i].classList.add("is-on");
           priblizit(fotky[i]);
+          dotahniJednu(fotky[(i + 1) % fotky.length]);
         }
         strida = setTimeout(dal, PROLNUTI_PAUZA);
       };
@@ -767,8 +772,7 @@
     form.addEventListener("submit", function (e) {
       e.preventDefault();
       if (btn.disabled) return;
-      var name = form.elements.name, email = form.elements.email, msg = form.elements.message;
-      if (!name.value.trim()) { mark(name); setStatus("Doplňte prosím své jméno.", "is-error"); name.focus(); return; }
+      var email = form.elements.email, msg = form.elements.message;
       if (!email.value.trim() || !email.checkValidity()) { mark(email); setStatus("Zkontrolujte prosím e-mailovou adresu.", "is-error"); email.focus(); return; }
       if (!msg.value.trim()) { mark(msg); setStatus("Napište nám prosím pár slov o akci.", "is-error"); msg.focus(); return; }
       form.elements.replyto.value = email.value.trim();
