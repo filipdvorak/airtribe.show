@@ -228,9 +228,27 @@
       markDots();
     }
     function gap() { return parseFloat(getComputedStyle(track).columnGap) || 0; }
+    /* Fotky, které karusel zatím neukázal, mají adresu schovanou v data-src.
+       Prohlížeč totiž u `loading="lazy"` bere ohled jen na to, jak daleko je
+       obrázek svisle — a všechny snímky karuselu leží ve stejné výšce, takže
+       jakmile se k pásu blížíme, stáhly by se naráz úplně všechny. Takhle se
+       dotáhne jen ten právě ukázaný a jeho dva sousedi, aby posun na další
+       nikdy nečekal. */
+    function dotahniSnimek(el) {
+      if (!el) return;
+      el.querySelectorAll("img[data-src]").forEach(function (im) {
+        if (im.dataset.srcset) { im.setAttribute("srcset", im.dataset.srcset); delete im.dataset.srcset; }
+        if (im.dataset.sizes) { im.setAttribute("sizes", im.dataset.sizes); delete im.dataset.sizes; }
+        im.setAttribute("src", im.dataset.src); delete im.dataset.src;
+      });
+    }
+    function dotahniOkoli() {
+      for (var i = idx - 1; i <= idx + n; i++) dotahniSnimek(track.children[i]);
+    }
     function place(anim) {
       track.classList.toggle("is-anim", !!anim && !reduce);
       track.style.transform = "translateX(calc(" + (-idx) + " * (100% + " + gap() + "px) / " + n + "))";
+      dotahniOkoli();
     }
     function markDots() {
       if (!dotsBox) return;

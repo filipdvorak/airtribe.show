@@ -691,7 +691,11 @@ html { scroll-padding-top: var(--odsazeni-scroll, calc(var(--nav-h) + 8px)); }
 .ah-facts b { font-family: var(--head); font-weight: 700; font-size: 1rem; line-height: 1.25; }
 .ah-facts li > span:last-child { font-size: .82rem; color: var(--muted); line-height: 1.3; }
 
-.ah-mosaic { --g: 12px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.083fr); gap: var(--g); align-content: center; justify-content: center; position: absolute; inset: 0; margin: auto; height: 100%; width: auto; aspect-ratio: .962; max-width: 100%; }
+/* Sloupce i poměr mozaiky dopočítává gen/mozaika_fotky.py z poměrů fotek:
+   každá dlaždice má tvar své fotky (nic se neořezává) a oba sloupce díky
+   tomu vyjdou stejně vysoké. Po výměně fotek obě čísla přepsat podle toho,
+   co skript vypíše. */
+.ah-mosaic { --g: 12px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.038fr); gap: var(--g); align-content: center; justify-content: center; position: absolute; inset: 0; margin: auto; height: 100%; width: auto; aspect-ratio: .9057; max-width: 100%; }
 .am-col { display: flex; flex-direction: column; gap: var(--g); }
 .am { margin: 0; position: relative; overflow: hidden; aspect-ratio: var(--ar, 1); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); transition: opacity .8s var(--ease), transform .8s var(--ease); transition-delay: var(--d, 0s); }
 .am[data-reveal] { transform: translateY(14px); }
