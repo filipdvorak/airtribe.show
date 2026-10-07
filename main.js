@@ -642,6 +642,7 @@
       if (dPanel) dPanel.scrollTop = 0;
       drawer.scrollTop = 0;
       try { history.replaceState(null, "", "#" + m.id); } catch (e) {}
+      planujSousedy();
     };
     var open = function (k) {
       opener = members[k]; fill(k);
@@ -651,6 +652,7 @@
       srovnejVek();
     };
     drawer.addEventListener("close", function () {
+      clearTimeout(casSousedu); dokonci(); zrusSousedy(); polozZa(0);
       document.body.classList.remove("no-scroll");
       try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
       if (opener) opener.focus({ preventScroll: true });
@@ -681,12 +683,17 @@
        prst dělá — tah doleva posune obsah doleva a odkryje dalšího
        člena, tah doprava předchozího. */
     var posuv = drawer.querySelector(".drawer-inner") || dInner;
-    /* Dojezd po puštění prstu a příjezd dalšího člena. Obojí má stejné
-       doběhové tempo, takže pohyb působí jako jedno gesto, ne jako dvě
-       animace za sebou. Průhlednost se nemění vůbec — medailonek jen
-       odjede ze strany a z druhé přijede další. */
-    var DOVNITR = "transform .32s cubic-bezier(.16, 1, .3, 1)";
-    var ZPET = "transform .3s cubic-bezier(.16, 1, .3, 1)";
+    /* Posouvání mezi členy je jedna stránkovaná řada: po obou stranách
+       současného medailonku stojí neživé kopie sousedů a jedou s prstem
+       spolu s ním. Mezi členy tak nikde neprosvítá pozadí a po puštění
+       pohyb jen dojede setrvačností tam, kam prst mířil. Kopie se
+       chystají dopředu, hned po otevření medailonku — fotka souseda je
+       díky tomu stažená dřív, než na ni přijde řada, takže nic neproblikne. */
+    var ZPET = "transform .34s cubic-bezier(.22, .85, .3, 1)";
+    var KRIVKA = "cubic-bezier(.17, .84, .34, 1)";   /* dojezd: zpomaluje, nepruží */
+    var dotykovy = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+    var kopie = { "-1": null, "1": null };
+    var casSousedu = null, dobeh = null;
 
     function sirkaPosuvu() {
       return posuv.getBoundingClientRect().width || window.innerWidth || 320;
@@ -698,73 +705,209 @@
     function uklid(za) {
       setTimeout(function () { posuv.style.transition = ""; posuv.style.willChange = ""; }, za);
     }
+    /* Doběh se dá kdykoliv dokončit předčasně — když návštěvník sáhne na
+       medailonek dřív, než dojede, nezůstane rozdělaný stav. */
+    function dokonci() {
+      if (!dobeh) return;
+      clearTimeout(dobeh.t);
+      var f = dobeh.fn; dobeh = null; f();
+    }
+    function potom(fn, za) {
+      dokonci();
+      dobeh = { fn: fn, t: setTimeout(function () { dobeh = null; fn(); }, za) };
+    }
+
+    /* Neživá kopie sousedního medailonku: jen obrázek stavu, nereaguje na
+       dotyk, čtečka ji přeskočí. Karusel v ní nikdo neoživí, tak v něm
+       zůstane jen první fotka. */
+    function kopieClena(smer) {
+      var m = members[(cur + smer + members.length) % members.length];
+      var kop = posuv.cloneNode(true);
+      kop.removeAttribute("id");
+      kop.setAttribute("aria-hidden", "true");
+      kop.querySelectorAll("[id]").forEach(function (e) { e.removeAttribute("id"); });
+      var foto = kop.querySelector(".drawer-photo"), prez = kop.querySelector(".drawer-nick"),
+          jmeno = kop.querySelector(".drawer-name"), vekEl = kop.querySelector(".drawer-vek"),
+          bioEl = kop.querySelector(".drawer-bio"), telo = kop.querySelector(".drawer-body");
+      var sablona = m.querySelector("template.m-velke");
+      var ph = sablona ? sablona.content.firstElementChild.cloneNode(true)
+                       : m.querySelector(".m-photo").cloneNode(true);
+      ph.querySelectorAll("img").forEach(function (im) { im.removeAttribute("loading"); });
+      var drah = ph.querySelector(".car-track");
+      if (drah) {
+        while (drah.children.length > 1) drah.removeChild(drah.lastChild);
+        drah.style.setProperty("--n", 1);
+        drah.style.transform = "none";
+      }
+      /* Tečky v kopii jsou jen nakreslené — tolik, kolik má soused fotek,
+         první zvýrazněná. Bez nich by se během posouvání pod fotkou
+         střídavě objevovaly a mizely. */
+      var tecky = ph.querySelector(".car-dots");
+      if (tecky) {
+        var pocet = sablona ? sablona.content.querySelectorAll(".car-slide").length : 0;
+        tecky.innerHTML = "";
+        for (var d = 0; d < pocet; d++) {
+          var b = document.createElement("button");
+          b.type = "button"; b.tabIndex = -1; b.setAttribute("aria-hidden", "true");
+          if (d === 0) b.setAttribute("aria-current", "true");
+          tecky.appendChild(b);
+        }
+      }
+      if (foto) { foto.innerHTML = ""; foto.appendChild(ph); }
+      if (prez) { prez.textContent = m.dataset.nick ? "„" + m.dataset.nick + "“" : ""; prez.hidden = !m.dataset.nick; }
+      if (jmeno) jmeno.textContent = m.dataset.name;
+      if (bioEl) {
+        bioEl.innerHTML = m.querySelector(".member-bio").innerHTML;
+        var vek = bioEl.querySelector(".m-vek");
+        if (vekEl) {
+          vekEl.innerHTML = vek ? vek.innerHTML : ""; vekEl.hidden = !vek;
+          vekEl.style.alignSelf = ""; vekEl.style.marginTop = "";
+          prepocitejLeta(vekEl);
+        }
+        if (vek) vek.remove();
+        prepocitejLeta(bioEl);
+      }
+      if (telo) telo.scrollTop = 0;
+      /* Kopie je mimo dosah dotyku i klávesnice — čtečka ani tabulátor
+         do ní nevlezou. */
+      if ("inert" in HTMLElement.prototype) kop.inert = true;
+      kop.querySelectorAll("a, button, input, textarea, select, [tabindex]")
+         .forEach(function (e) { e.setAttribute("tabindex", "-1"); });
+      kop.style.position = "absolute";
+      kop.style.left = "0";
+      kop.style.width = "100%";
+      kop.style.pointerEvents = "none";
+      kop.style.transition = "none";
+      return kop;
+    }
+    function pripravSousedy() {
+      if (members.length < 2 || !drawer.open) return;
+      var ramec = posuv.parentNode;
+      /* Kopie visí ve stejné souřadnici jako panel, takže se posouvají
+         i při svislém rolování spolu s ním. Delší medailonek souseda se
+         usekne na výšku panelu (`max-height`, ne `height` — při pevné
+         výšce by se mřížka uvnitř roztáhla a fotka by ujela níž). */
+      var vrch = posuv.offsetTop, vyska = posuv.offsetHeight;
+      [-1, 1].forEach(function (smer) {
+        if (kopie[smer]) return;
+        var kop = kopieClena(smer);
+        kop.style.top = vrch + "px";
+        kop.style.maxHeight = vyska + "px";
+        kop.style.overflow = "hidden";
+        /* Dokud se netáhne, kopie čekají schované přesně na panelu:
+           fotky se jim stáhnou dopředu, ale nic nepřesahuje ven, takže
+           panelu nenaroste šířka rolování. Na stranu se postaví až
+           v okamžiku, kdy je prst potřebuje. */
+        kop.style.visibility = "hidden";
+        kop.style.transform = "translate3d(0, 0, 0)";
+        ramec.appendChild(kop);
+        kopie[smer] = kop;
+      });
+    }
+    function probudSousedy() {
+      var sirka = sirkaPosuvu();
+      [-1, 1].forEach(function (smer) {
+        var k = kopie[smer];
+        if (!k) return;
+        k.style.visibility = "";
+        k.style.transition = "none";
+        k.style.transform = "translate3d(" + Math.round(smer * sirka) + "px, 0, 0)";
+      });
+    }
+    function uspiSousedy() {
+      [-1, 1].forEach(function (smer) {
+        var k = kopie[smer];
+        if (!k) return;
+        k.style.transition = "none";
+        k.style.transform = "translate3d(0, 0, 0)";
+        k.style.visibility = "hidden";
+      });
+    }
+    function zrusSousedy() {
+      [-1, 1].forEach(function (smer) {
+        var k = kopie[smer];
+        if (k && k.parentNode) k.parentNode.removeChild(k);
+        kopie[smer] = null;
+      });
+    }
+    /* Sousedé se chystají až chvíli po přepnutí — v tu dobu se nikam
+       nespěchá a příprava se tak nepotká s rozjetou animací. Na myši
+       nemají smysl, tam se prstem netáhne. */
+    function planujSousedy() {
+      clearTimeout(casSousedu);
+      zrusSousedy();
+      if (!dotykovy || reduce || members.length < 2) return;
+      casSousedu = setTimeout(pripravSousedy, 280);
+    }
+    function posunVse(x, prechod) {
+      polozZa(x, prechod);
+      var sirka = sirkaPosuvu();
+      [-1, 1].forEach(function (smer) {
+        var k = kopie[smer];
+        if (!k) return;
+        k.style.transition = prechod || "none";
+        k.style.transform = "translate3d(" + Math.round(x + smer * sirka) + "px, 0, 0)";
+      });
+    }
     /* smer: +1 = další člen (prst šel doleva), -1 = předchozí.
        `odkud` je místo, kde prst skončil, `rychlost` jeho tempo v px/ms —
        z toho se spočítá doba dojezdu, aby obsah plynule pokračoval tam,
        kam ho prst poslal, místo aby se zasekl a rozjel znovu. */
     function prepni(smer, odkud, rychlost) {
-      if (reduce) { fill(cur + smer); polozZa(0); return; }
+      if (reduce || members.length < 2) { zrusSousedy(); fill(cur + smer); polozZa(0); return; }
+      pripravSousedy(); probudSousedy();
+      /* Kopie na odvrácené straně už není k čemu; ta cílová dojede přesně
+         na místo, kde ji pak vystřídá skutečný panel se stejným obsahem. */
+      var zpet = kopie[-smer];
+      if (zpet && zpet.parentNode) zpet.parentNode.removeChild(zpet);
+      kopie[-smer] = null;
       var sirka = sirkaPosuvu();
       odkud = odkud || 0;
-      var ramec = posuv.parentNode;
-
-      /* Odcházející medailonek zůstane na obrazovce jako neživá kopie a
-         další se postaví hned vedle něj — mezi nimi tak není žádná
-         mezera, posouvají se jako dvě stránky vedle sebe. Kopie je jen
-         obrázek stavu: nemá id, nereaguje na dotyk a po dojetí zmizí. */
-      var duch = posuv.cloneNode(true);
-      var scrollPred = ramec.scrollTop || 0;
-      duch.removeAttribute("id");
-      duch.setAttribute("aria-hidden", "true");
-      duch.style.position = "absolute";
-      duch.style.left = "0";
-      duch.style.top = (posuv.offsetTop + scrollPred) + "px";
-      duch.style.width = "100%";
-      duch.style.pointerEvents = "none";
-      duch.style.transition = "none";
-      duch.style.transform = "translate3d(" + Math.round(odkud) + "px, 0, 0)";
-      ramec.appendChild(duch);
-
-      fill(cur + smer);                       /* skutečný panel už nese dalšího člena */
-      var zacatek = odkud + smer * sirka;     /* a stojí přesně vedle kopie */
-      polozZa(zacatek, "none");
-      posuv.getBoundingClientRect();          /* vynutí překreslení, než se obojí rozjede */
-
-      var posun = -zacatek;
-      var doba = Math.max(170, Math.min(340, Math.abs(posun) / Math.max(rychlost || 0, 0.9)));
-      var prechod = "transform " + Math.round(doba) + "ms cubic-bezier(.22, .68, .28, 1)";
-      duch.style.transition = prechod;
-      duch.style.transform = "translate3d(" + Math.round(odkud + posun) + "px, 0, 0)";
-      polozZa(0, prechod);
-      setTimeout(function () {
-        if (duch.parentNode) duch.parentNode.removeChild(duch);
-      }, doba + 60);
-      uklid(doba + 60);
+      var cil = -smer * sirka;
+      var zbyva = Math.abs(cil - odkud);
+      var doba = Math.max(190, Math.min(430, zbyva / Math.max(rychlost || 0, 0.6)));
+      posunVse(cil, "transform " + Math.round(doba) + "ms " + KRIVKA);
+      potom(function () {
+        fill(cur + smer);
+        polozZa(0);
+        posuv.getBoundingClientRect();   /* vykreslit dřív, než kopie zmizí */
+        zrusSousedy();
+        uklid(0);
+        planujSousedy();
+      }, doba + 30);
     }
     function vratZpet() {
-      polozZa(0, reduce ? "none" : ZPET);
-      uklid(340);
+      posunVse(0, reduce ? "none" : ZPET);
+      potom(function () {
+        posuv.style.transition = ""; posuv.style.willChange = "";
+        uspiSousedy();
+      }, 360);
     }
 
-    var tX = 0, tY = 0, tSmer = 0, tCas = 0, tahne = false;
+    var tX = 0, tY = 0, tSmer = 0, tCas = 0, tahne = false, tZaklad = 0;
     dInner.addEventListener("touchstart", function (e) {
+      dokonci();
       if (e.touches.length !== 1) { tSmer = -1; return; }
       tX = e.touches[0].clientX; tY = e.touches[0].clientY;
-      tSmer = 0; tCas = Date.now(); tahne = false;
+      tSmer = 0; tCas = Date.now(); tahne = false; tZaklad = 0;
       posuv.style.transition = "none";
       posuv.style.willChange = "transform";
+      if (!kopie[1]) pripravSousedy();
     }, { passive: true });
     dInner.addEventListener("touchmove", function (e) {
       if (tSmer === -1 || e.touches.length !== 1) return;
       var dx = e.touches[0].clientX - tX, dy = e.touches[0].clientY - tY;
       /* O směru se rozhodne jednou, hned na začátku pohybu, ať se
-         gesto v půlce nepřeklápí. */
-      if (tSmer === 0 && (Math.abs(dx) > 12 || Math.abs(dy) > 12))
+         gesto v půlce nepřeklápí. Práh se odečte, aby obsah vyjel
+         od nuly a neuskočil o těch pár pixelů, než bylo jasno. */
+      if (tSmer === 0 && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
         tSmer = Math.abs(dx) > Math.abs(dy) * 1.4 ? 1 : -1;
+        if (tSmer === 1) { tZaklad = dx; tCas = Date.now(); pripravSousedy(); probudSousedy(); }
+      }
       if (tSmer !== 1) return;
       tahne = true;
       /* Obsah jde přesně s prstem — žádné zpomalení ani stmívání. */
-      polozZa(dx);
+      posunVse(dx - tZaklad);
     }, { passive: true });
     dInner.addEventListener("touchend", function (e) {
       var bylTah = tahne, bylSmer = tSmer;
@@ -772,18 +915,19 @@
       if (bylSmer !== 1 || !bylTah) { posuv.style.willChange = ""; return; }
       var dot = e.changedTouches && e.changedTouches[0];
       if (!dot) { vratZpet(); return; }
-      var dx = dot.clientX - tX, sirka = sirkaPosuvu();
+      var dx = dot.clientX - tX - tZaklad, sirka = sirkaPosuvu();
       /* Přehodí se buď po dost dlouhém tažení, nebo po krátkém, ale
          svižném mrsknutí. */
       var rychlost = Math.abs(dx) / Math.max(1, Date.now() - tCas);
       if (Math.abs(dx) >= Math.min(110, Math.max(48, sirka * 0.18)) ||
-          (rychlost > 0.45 && Math.abs(dx) > 24)) prepni(dx < 0 ? 1 : -1, dx, rychlost);
+          (rychlost > 0.4 && Math.abs(dx) > 20)) prepni(dx < 0 ? 1 : -1, dx, rychlost);
       else vratZpet();
     }, { passive: true });
     dInner.addEventListener("touchcancel", function () {
       if (tahne) vratZpet(); else posuv.style.willChange = "";
       tSmer = 0; tahne = false;
     }, { passive: true });
+    window.addEventListener("resize", function () { if (drawer.open) planujSousedy(); });
     /* Prohlížeč tak ví, že vodorovné gesto patří stránce, ne posouvání. */
     dInner.style.touchAction = "pan-y pinch-zoom";
     var h = decodeURIComponent(location.hash.slice(1));
