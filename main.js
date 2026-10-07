@@ -670,7 +670,7 @@
       srovnejVek();
     };
     drawer.addEventListener("close", function () {
-      clearTimeout(casSousedu); dokonci(); zrusSousedy(); polozZa(0);
+      clearTimeout(casSousedu); dokonci(); zrusSousedy(); polozZa(0); polozPanel(0);
       document.body.classList.remove("no-scroll");
       try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
       if (opener) opener.focus({ preventScroll: true });
@@ -948,6 +948,72 @@
     window.addEventListener("resize", function () { if (drawer.open) planujSousedy(); });
     /* Prohlížeč tak ví, že vodorovné gesto patří stránce, ne posouvání. */
     dInner.style.touchAction = "pan-y pinch-zoom";
+
+    /* ---- Stažení prstem dolů = zavřít medailonek ----
+       Posluchač visí na celém panelu, takže gesto funguje i nad fotkou,
+       ne jen nad textem. Začne se **jen když je medailonek úplně nahoře** —
+       jinak by se místo posouvání textu zavíral. Kontrolují se všechny tři
+       plochy, které se podle šířky okna posouvají (panel, text i samotné
+       okno dialogu). Vodorovné gesto si bere přepínání členů a karusel
+       fotek, takže se tu bere jen tah dolů. */
+    var panel = posuv.parentNode;
+    var zX = 0, zY = 0, zSmer = 0, zCas = 0, zTahne = false, zNahore = false;
+    var ZAVRIT = "transform .3s cubic-bezier(.3, .7, .4, 1)";
+
+    function nahore() {
+      return (panel.scrollTop || 0) <= 0 && (drawer.scrollTop || 0) <= 0
+          && (dInner.scrollTop || 0) <= 0;
+    }
+    function polozPanel(y, prechod) {
+      panel.style.transition = prechod || "none";
+      panel.style.transform = y ? "translate3d(0, " + Math.round(y) + "px, 0)" : "";
+    }
+    function zavriTahem(odkud, rychlost) {
+      if (reduce) { polozPanel(0); drawer.close(); return; }
+      var cil = (window.innerHeight || panel.offsetHeight) + 40;
+      var doba = Math.max(160, Math.min(320, (cil - odkud) / Math.max(rychlost || 0, 1.2)));
+      polozPanel(cil, "transform " + Math.round(doba) + "ms cubic-bezier(.3, .7, .4, 1)");
+      setTimeout(function () {
+        drawer.close();
+        polozPanel(0);
+        panel.style.transition = "";
+      }, doba);
+    }
+
+    panel.addEventListener("touchstart", function (e) {
+      if (!drawer.open || e.touches.length !== 1) { zSmer = -1; return; }
+      zX = e.touches[0].clientX; zY = e.touches[0].clientY;
+      zSmer = 0; zCas = Date.now(); zTahne = false;
+      zNahore = nahore();
+      panel.style.transition = "none";
+    }, { passive: true });
+    panel.addEventListener("touchmove", function (e) {
+      if (zSmer === -1 || e.touches.length !== 1) return;
+      var dx = e.touches[0].clientX - zX, dy = e.touches[0].clientY - zY;
+      /* O směru se rozhodne jednou, hned na začátku pohybu. */
+      if (zSmer === 0 && (Math.abs(dx) > 10 || Math.abs(dy) > 10))
+        zSmer = (zNahore && dy > 0 && dy > Math.abs(dx) * 1.4) ? 1 : -1;
+      if (zSmer !== 1) return;
+      zTahne = true;
+      /* Práh se odečte, ať panel vyjede od nuly a neuskočí. */
+      polozPanel(Math.max(0, dy - 10));
+    }, { passive: true });
+    panel.addEventListener("touchend", function (e) {
+      var bylTah = zTahne, bylSmer = zSmer;
+      zSmer = 0; zTahne = false;
+      if (bylSmer !== 1 || !bylTah) return;
+      var dot = e.changedTouches && e.changedTouches[0];
+      var dy = dot ? Math.max(0, dot.clientY - zY - 10) : 0;
+      var rychlost = dy / Math.max(1, Date.now() - zCas);
+      /* Zavře se po dost dlouhém stažení, nebo po krátkém mrsknutí dolů. */
+      var prah = Math.min(180, Math.max(90, panel.offsetHeight * 0.22));
+      if (dy >= prah || (rychlost > 0.5 && dy > 30)) zavriTahem(dy, rychlost);
+      else polozPanel(0, reduce ? "none" : ZAVRIT);
+    }, { passive: true });
+    panel.addEventListener("touchcancel", function () {
+      if (zTahne) polozPanel(0, reduce ? "none" : ZAVRIT);
+      zSmer = 0; zTahne = false;
+    }, { passive: true });
     var h = decodeURIComponent(location.hash.slice(1));
     members.forEach(function (m, k) { if (h && m.id === h) setTimeout(function () { open(k); }, 300); });
   }
