@@ -813,7 +813,7 @@ a.who-card:hover .who-more svg { translate: 4px 0; }
    místa; min() zajistí, že se okno na užších displejích samo srazí. */
 .drawer { width: min(1220px, calc(100vw - 16px)); max-height: none; padding: 0; border: 0; background: transparent; box-shadow: none; overflow: visible; }
 .drawer[open] { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; }
-.drawer-panel { min-width: 0; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: calc(var(--radius) + 4px); overflow: hidden; box-shadow: 0 40px 100px -30px rgba(0,0,0,.9); max-height: calc(100dvh - 24px); overflow-y: auto; overscroll-behavior: contain; }
+.drawer-panel { position: relative; min-width: 0; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: calc(var(--radius) + 4px); overflow: hidden; box-shadow: 0 40px 100px -30px rgba(0,0,0,.9); max-height: calc(100dvh - 24px); overflow-y: auto; overscroll-behavior: contain; }
 .drawer .drawer-nav { width: 46px; height: 46px; background: var(--surface-2); border-color: var(--line-2); backdrop-filter: none; -webkit-backdrop-filter: none; }
 .drawer .drawer-nav:hover { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .drawer .drawer-top { inset: 14px 14px auto auto; }
@@ -1050,7 +1050,6 @@ a.logo-item:hover::before, a.logo-item:focus-visible::before { opacity: 1; }
 a.logo-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 6px; border-radius: 10px; }
 
 /* Rozměry jednotlivých log (výška × šířka v px při --k: 1). */
-.lg-bosch           { --lh: 32px; --lw: 142px; }
 .lg-stillproduction { --lh: 60px; --lw: 125px; }
 .lg-zliv            { --lh: 47px; --lw: 104px; }
 .lg-vrcovice        { --lh: 62px; --lw:  56px; }
@@ -1063,7 +1062,10 @@ a.logo-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 6p
   .logo-item { height: 86px; }
 }
 @media (max-width: 700px) {
-  .logos { margin-top: 30px; gap: 6px 18px; --k: .72; justify-content: center; }
+  /* Na telefonu se loga do řady nevejdou a zalomí se nastřídačku (4 + 3),
+     což vypadá rozsypaně. Mřížka 3 × 2 je drží v zákrytu. */
+  .logos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: 30px; gap: 10px; --k: .72; }
   .logo-item { height: 70px; }
 }
 @media (hover: none) {
@@ -1224,4 +1226,19 @@ a.logo-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 6p
   .c-row { grid-template-columns: 40px 1fr auto; gap: 12px; padding: 16px; }
   .c-ic { width: 40px; height: 40px; }
   .c-ic svg { width: 20px; height: 20px; }
+}
+
+/* Pod 380 px jsou tři sloupce log už moc úzké. */
+@media (max-width: 380px) {
+  .logos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Výzva k poptávce na stránce O nás (sekce hned za Spoluprací): na úzkém
+   displeji mířila tlačítka doprava, zatímco nadpis i text začínaly vlevo —
+   dlaždice působila rozhozeně. Na počítači zůstávají vpravo, na telefonu
+   jdou pod sebe přes celou šířku. */
+#spoluprace + .section .cta .btn-row { justify-content: flex-end; }
+@media (max-width: 700px) {
+  #spoluprace + .section .cta .btn-row { gap: 12px; }
+  #spoluprace + .section .cta .btn-row .btn { flex: 1 1 100%; }
 }

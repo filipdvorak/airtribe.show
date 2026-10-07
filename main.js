@@ -705,17 +705,41 @@
     function prepni(smer, odkud, rychlost) {
       if (reduce) { fill(cur + smer); polozZa(0); return; }
       var sirka = sirkaPosuvu();
-      var cil = -smer * sirka;
-      var zbyva = Math.abs(cil - (odkud || 0));
-      var doba = Math.max(130, Math.min(300, zbyva / Math.max(rychlost || 0, 0.9)));
-      polozZa(cil, "transform " + Math.round(doba) + "ms cubic-bezier(.25, .6, .35, 1)");
+      odkud = odkud || 0;
+      var ramec = posuv.parentNode;
+
+      /* Odcházející medailonek zůstane na obrazovce jako neživá kopie a
+         další se postaví hned vedle něj — mezi nimi tak není žádná
+         mezera, posouvají se jako dvě stránky vedle sebe. Kopie je jen
+         obrázek stavu: nemá id, nereaguje na dotyk a po dojetí zmizí. */
+      var duch = posuv.cloneNode(true);
+      var scrollPred = ramec.scrollTop || 0;
+      duch.removeAttribute("id");
+      duch.setAttribute("aria-hidden", "true");
+      duch.style.position = "absolute";
+      duch.style.left = "0";
+      duch.style.top = (posuv.offsetTop + scrollPred) + "px";
+      duch.style.width = "100%";
+      duch.style.pointerEvents = "none";
+      duch.style.transition = "none";
+      duch.style.transform = "translate3d(" + Math.round(odkud) + "px, 0, 0)";
+      ramec.appendChild(duch);
+
+      fill(cur + smer);                       /* skutečný panel už nese dalšího člena */
+      var zacatek = odkud + smer * sirka;     /* a stojí přesně vedle kopie */
+      polozZa(zacatek, "none");
+      posuv.getBoundingClientRect();          /* vynutí překreslení, než se obojí rozjede */
+
+      var posun = -zacatek;
+      var doba = Math.max(170, Math.min(340, Math.abs(posun) / Math.max(rychlost || 0, 0.9)));
+      var prechod = "transform " + Math.round(doba) + "ms cubic-bezier(.22, .68, .28, 1)";
+      duch.style.transition = prechod;
+      duch.style.transform = "translate3d(" + Math.round(odkud + posun) + "px, 0, 0)";
+      polozZa(0, prechod);
       setTimeout(function () {
-        fill(cur + smer);
-        polozZa(smer * sirka, "none");
-        posuv.getBoundingClientRect();          /* vynutí překreslení, než se rozjede cesta zpět */
-        polozZa(0, DOVNITR);
-        uklid(360);
-      }, doba);
+        if (duch.parentNode) duch.parentNode.removeChild(duch);
+      }, doba + 60);
+      uklid(doba + 60);
     }
     function vratZpet() {
       polozZa(0, reduce ? "none" : ZPET);
