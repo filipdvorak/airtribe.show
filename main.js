@@ -203,6 +203,24 @@
     var n = 0, idx = 0, timer = null, settleT = null, hovering = false, visible = false, busy = false;
     var dotsBox = root.querySelector(".car-dots");
 
+    /* Jednofotkové karusely (nabídka, galerie v medailoncích) se chovají
+       stejně jako rotátor na filip-dvorak.com:
+         - samy od sebe se fotka PROLNE (první po 3,5 s, pak každých 5,3 s),
+         - ručně (šipka, tečka, prst) se POSUNE do strany,
+         - přejetí prstem fotku přehodí až po puštění, nejde za prstem.
+       Karusel ohlasů na kontaktu ukazuje víc položek vedle sebe, takže si
+       nechává původní chování. */
+    var rotator = (root.getAttribute("data-per-view") || "4,2,1") === "1,1,1";
+    var DRZ = 3500, STANI = 4200, PROLNUTI = 1100, POSUN = 520, PRAH = 45;
+    var prolinani = null, prvniPusteni = true;
+    if (rotator) {
+      root.classList.add("car-rotator");
+      root.style.setProperty("--rot-fade", PROLNUTI + "ms");
+      root.style.setProperty("--car-anim", POSUN + "ms");
+      auto = !reduce;
+      interval = STANI + PROLNUTI;
+    }
+
     function perView() { var w = window.innerWidth; return w > 1024 ? bp[0] : (w > 560 ? bp[1] : bp[2]); }
 
     function build() {
@@ -221,7 +239,7 @@
         for (var d = 0; d < N; d++) {
           var b = document.createElement("button");
           b.type = "button"; b.setAttribute("aria-label", "Snímek " + (d + 1));
-          (function (k) { b.addEventListener("click", function () { go(n + k); restart(); }); })(d);
+          (function (k) { b.addEventListener("click", function () { go(n + k); poRucnim(); }); })(d);
           dotsBox.appendChild(b);
         }
       }
@@ -256,6 +274,12 @@
       Array.prototype.forEach.call(dotsBox.children, function (b, k) { b.setAttribute("aria-current", k === real ? "true" : "false"); });
     }
     function go(to) {
+      if (prolinani) {                    /* rozdělané prolnutí se dokončí skokem */
+        var rozdil = to - idx;
+        zrusProlnuti(true);
+        to = idx + rozdil;
+        void track.offsetWidth;
+      }
       if (busy) {                         /* rychlé klikání: dokončit předchozí posun skokem */
         var diff = to - idx;
         settle();
@@ -265,7 +289,38 @@
       idx = to; busy = true;
       place(true); markDots();
       clearTimeout(settleT);
-      settleT = setTimeout(settle, reduce ? 0 : 900);
+      settleT = setTimeout(settle, reduce ? 0 : (rotator ? POSUN + 140 : 900));
+    }
+
+    /* Prolnutí: nad současnou fotku se položí neživá kopie té další a
+       zesvětlí se. Když dojede, pás pod ní skočí na nové místo (bez
+       animace) a kopie zmizí — výměna není vidět, protože obojí ukazuje
+       totéž. Pás tím pádem nemusí nikam jezdit a nic nebliká. */
+    function prolni(to) {
+      if (reduce) { go(to); return; }
+      if (busy) settle();
+      var zdroj = track.children[to];
+      if (!zdroj) { go(to); return; }
+      dotahniSnimek(zdroj);
+      var kopie = zdroj.cloneNode(true);
+      kopie.classList.add("car-prolnuti");
+      kopie.setAttribute("aria-hidden", "true");
+      kopie.querySelectorAll("img").forEach(function (im) { im.removeAttribute("loading"); });
+      kopie.querySelectorAll("[id]").forEach(function (e) { e.removeAttribute("id"); });
+      viewport.appendChild(kopie);
+      kopie.getBoundingClientRect();
+      kopie.classList.add("je-videt");
+      busy = true;
+      prolinani = { el: kopie, to: to, t: setTimeout(function () { zrusProlnuti(true); }, PROLNUTI + 40) };
+    }
+    function zrusProlnuti(dokonci) {
+      if (!prolinani) return;
+      var p = prolinani; prolinani = null;
+      clearTimeout(p.t);
+      if (dokonci) { idx = p.to; place(false); markDots(); }
+      if (p.el.parentNode) p.el.parentNode.removeChild(p.el);
+      busy = false;
+      settle();
     }
     function settle() {
       clearTimeout(settleT);
@@ -277,16 +332,30 @@
 
     function next() { go(idx + 1); }
     function prev() { go(idx - 1); }
-    function stop() { clearInterval(timer); timer = null; }
-    function restart() {
+    function stop() { clearTimeout(timer); clearInterval(timer); timer = null; }
+    function samo() { if (rotator && !reduce) prolni(idx + 1); else next(); }
+    /* `prodleva` = kolik čekat do prvního přepnutí. Po ručním přepnutí je
+       kratší o dobu posunu, aby se automatika viditelně nezadrhla. */
+    function restart(prodleva) {
       stop();
       if (!auto || hovering || !visible || document.hidden) return;
+      if (rotator) {
+        var prvni = typeof prodleva === "number" ? prodleva
+                  : (prvniPusteni ? DRZ : STANI + PROLNUTI);
+        prvniPusteni = false;
+        timer = setTimeout(function () {
+          samo();
+          timer = setInterval(samo, STANI + PROLNUTI);
+        }, prvni);
+        return;
+      }
       timer = setInterval(next, interval);
     }
+    function poRucnim() { restart(rotator ? STANI + POSUN : undefined); }
 
     var pb = root.querySelector("[data-prev]"), nb = root.querySelector("[data-next]");
-    if (pb) pb.addEventListener("click", function () { prev(); restart(); });
-    if (nb) nb.addEventListener("click", function () { next(); restart(); });
+    if (pb) pb.addEventListener("click", function () { prev(); poRucnim(); });
+    if (nb) nb.addEventListener("click", function () { next(); poRucnim(); });
     /* automatický posun se zastaví jen pod kurzorem myši (ne po kliknutí ani na dotykových displejích) */
     root.addEventListener("pointerenter", function (e) { if (e.pointerType === "mouse") { hovering = true; stop(); } });
     root.addEventListener("pointerleave", function (e) { if (e.pointerType === "mouse") { hovering = false; restart(); } });
@@ -318,6 +387,7 @@
       e.preventDefault();
       moved = true;
       drag.dx = dx;
+      if (rotator) return;              /* rotátor se přehodí až po puštění */
       track.classList.remove("is-anim");
       track.style.transform = "translateX(" + (drag.base + dx) + "px)";
     }, { passive: false });
@@ -326,14 +396,18 @@
       var d = drag; drag = null;
       root.classList.remove("is-dragging");
       if (d.axis === "x") {
-        var step = slideStep();
-        var steps = Math.round(-d.dx / step);
-        if (steps === 0 && Math.abs(d.dx) > 40) steps = d.dx < 0 ? 1 : -1;
-        steps = Math.max(-n, Math.min(n, steps));
-        if (steps === 0) place(true);
-        else go(idx + steps);
+        if (rotator) {
+          if (Math.abs(d.dx) > PRAH) go(idx + (d.dx < 0 ? 1 : -1));
+        } else {
+          var step = slideStep();
+          var steps = Math.round(-d.dx / step);
+          if (steps === 0 && Math.abs(d.dx) > 40) steps = d.dx < 0 ? 1 : -1;
+          steps = Math.max(-n, Math.min(n, steps));
+          if (steps === 0) place(true);
+          else go(idx + steps);
+        }
       }
-      restart();
+      poRucnim();
     }
     window.addEventListener("pointerup", endDrag);
     window.addEventListener("pointercancel", endDrag);
