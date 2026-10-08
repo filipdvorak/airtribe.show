@@ -292,22 +292,36 @@
       settleT = setTimeout(settle, reduce ? 0 : (rotator ? POSUN + 140 : 900));
     }
 
-    /* Prolnutí: nad současnou fotku se položí neživá kopie té další a
+    /* Prolnutí: do rámečku současné fotky se vloží kopie té další a
        zesvětlí se. Když dojede, pás pod ní skočí na nové místo (bez
        animace) a kopie zmizí — výměna není vidět, protože obojí ukazuje
-       totéž. Pás tím pádem nemusí nikam jezdit a nic nebliká. */
+       totéž. Pás tím pádem nemusí nikam jezdit a nic nebliká.
+
+       Kopie je schválně **jen <img> vložený do téhož <figure>**, ne celý
+       snímek položený přes rám karuselu. Rám pásu je kvůli posouvání
+       vykreslovaný jako vlastní vrstva a ta se zarovnává na celé pixely;
+       kopie mimo něj se kreslí do stránky. Obojí pak sedí na stejném
+       místě jen „skoro" — a když se na konci prolnutí kopie vyměnila za
+       pás, fotka o zlomek pixelu cukla. Takhle vznikají obě fotky ve
+       stejném rámečku, se stejným ořezem, a kreslí je stejná vrstva. */
     function prolni(to) {
       if (reduce) { go(to); return; }
       if (busy) settle();
-      var zdroj = track.children[to];
-      if (!zdroj) { go(to); return; }
-      dotahniSnimek(zdroj);
-      var kopie = zdroj.cloneNode(true);
+      var cilovy = track.children[to], soucasny = track.children[idx];
+      if (!cilovy || !soucasny) { go(to); return; }
+      dotahniSnimek(cilovy);
+      var cilovaFotka = cilovy.querySelector("img");
+      var ramecek = soucasny.querySelector("figure") || soucasny;
+      if (!cilovaFotka) { go(to); return; }
+      var kopie = cilovaFotka.cloneNode(true);
       kopie.classList.add("car-prolnuti");
       kopie.setAttribute("aria-hidden", "true");
-      kopie.querySelectorAll("img").forEach(function (im) { im.removeAttribute("loading"); });
-      kopie.querySelectorAll("[id]").forEach(function (e) { e.removeAttribute("id"); });
-      viewport.appendChild(kopie);
+      kopie.removeAttribute("loading");
+      kopie.removeAttribute("id");
+      /* Výřez (object-position) si nese každá fotka svůj, a kopie teď visí
+         v cizím rámečku — musí si ho proto vzít s sebou napevno. */
+      kopie.style.objectPosition = getComputedStyle(cilovaFotka).objectPosition;
+      ramecek.appendChild(kopie);
       kopie.getBoundingClientRect();
       kopie.classList.add("je-videt");
       busy = true;

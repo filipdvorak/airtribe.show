@@ -361,14 +361,15 @@ html { scroll-padding-top: var(--odsazeni-scroll, calc(var(--nav-h) + 8px)); }
    Prolnutí dělá neživá kopie další fotky položená nad tu současnou —
    viz karusel() v main.js. */
 .car-rotator .car-viewport { position: relative; }
-/* Kopie musí ležet POD ztmavením dolního okraje i pod ovládáním (vinětace
-   má z-index 1, šipky a tečky 2). Když měla kopie z-index 2, překryla je —
-   ztmavení se během prolnutí schovalo a na konci, když kopie zmizela, zase
-   skočilo zpátky. Teď zůstává vinětace nehnutě nahoře a mění se jen fotka. */
-.car-rotator .car-prolnuti { position: absolute; inset: 0; z-index: 0; opacity: 0; pointer-events: none;
+/* Kopie další fotky leží přímo v rámečku té současné (viz prolni() v
+   main.js), takže ji kreslí stejná vrstva a má přesně stejný ořez — jinak
+   fotka na konci prolnutí o zlomek pixelu cukla. Zároveň tím zůstává pod
+   ztmavením dolního okraje i pod ovládáním, která patří k rámu karuselu. */
+.car-rotator .car-slide figure { position: relative; }
+.car-rotator .car-prolnuti { position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; opacity: 0; pointer-events: none;
   transition: opacity var(--rot-fade, 1.1s) linear; }
 .car-rotator .car-prolnuti.je-videt { opacity: 1; }
-.car-rotator .car-prolnuti > figure { height: 100%; margin: 0; aspect-ratio: auto; }
 /* Šipky jsou v klidu neviditelné a plynule se objeví při najetí kurzorem,
    stejně jako u rotátoru na filip-dvorak.com. Záměrně NE :focus-within —
    po kliknutí myší zůstane tlačítko zaostřené a šipky by po odjetí kurzoru
